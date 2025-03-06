@@ -55,12 +55,6 @@ public class ClientController {
     /**
      * Authenticate a client (Moved to /api/auth).
      */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER' , 'SUPERADMIN' , 'ADMIN')")
- /*   @PostMapping("/auth/login")
-    public ResponseEntity<Optional<Client>> authenticateClient(@RequestBody LoginRequest loginRequest) {
-        Optional<Client> authenticatedClient = clientService.authenticateClient(loginRequest.getEmail(), loginRequest.getPassword());
-        return authenticatedClient.isPresent() ? ResponseEntity.ok(authenticatedClient) : ResponseEntity.status(401).build();
-    }*/
 
     /**
      * Get client information.
@@ -79,7 +73,7 @@ public class ClientController {
     /**
      * Update client profile.
      */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER' , 'SUPERADMIN' , 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER')")
     @PutMapping("/{clientId}")
     public ResponseEntity<?> updateClientProfile(
             @PathVariable Long clientId,
@@ -129,7 +123,6 @@ public class ClientController {
         List<ProduitDTO> products = clientService.getAllProducts();
         return ResponseEntity.ok(products);
     }
-
     /**
      * Get products by category.
      */

@@ -39,7 +39,7 @@ public class AdminController {
     }
 
     /** 🔹 Modifier les informations d'un client */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER' , 'SUPERADMIN' , 'ADMIN')")
+    //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
     @PutMapping("/{clientId}")
     public ResponseEntity<String> updateClientInfo(@PathVariable Long clientId, @RequestBody Client updatedClient) {
         if (adminService.updateClientInfo(clientId, updatedClient)) {

@@ -17,7 +17,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
-
     private final JwtAuthEntryPoint authEntryPoint;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
@@ -30,20 +29,45 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CORRECTED CSRF CONFIGURATION
-                .csrf(csrf -> csrf.disable()) // ← This is the proper way
-                .exceptionHandling(eh -> eh
-                        .authenticationEntryPoint(authEntryPoint)
-                )
-                .sessionManagement(sm -> sm
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .csrf(csrf -> csrf.disable())
+                .exceptionHandling(eh -> eh.authenticationEntryPoint(authEntryPoint))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/clients/**").authenticated()
-                        .requestMatchers("/api/superadmins/**").hasRole("ROLE_SUPERADMIN")
-                        .requestMatchers("/api/admin/**").hasAnyRole("ROLE_ADMIN", "ROLE_SUPERADMIN")
-                        .requestMatchers("/api/categories/**").hasAnyRole("ROLE_ADMIN", "ROLE_SUPERADMIN")
+
+                        // Client endpoints
+                        .requestMatchers("/api/clients/register").permitAll() // Registration is public
+                        .requestMatchers("/api/clients/products").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/clients/categories/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/clients/{clientId}/favorites/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/clients/{clientId}/ratings/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/clients/{clientId}/password").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/clients/**").authenticated() // All other client endpoints require authentication
+                        // Admin endpoints
+                        .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/packs/**").hasAnyAuthority("ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
+
+                        // SuperAdmin endpoints
+                        .requestMatchers("/api/superadmins/**").hasAuthority("ROLE_SUPERADMIN")
+
+                        // Product endpoints
+                        .requestMatchers("/api/Products/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+
+                        // Commande endpoints
+                        .requestMatchers("/api/commandes/{clientId}/Pack").hasAuthority("ROLE_USERPARTNER")
+                        .requestMatchers("/api/commandes/{clientId}").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/commandes/**").authenticated()
+
+                        // Categories endpoints
+                        .requestMatchers("/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+
+                        // Reclamation endpoints
+                        .requestMatchers("/api/reclamations/clients/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/reclamations").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/reclamations/**").authenticated()
+
+                        // Fallback: All other requests require authentication
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
