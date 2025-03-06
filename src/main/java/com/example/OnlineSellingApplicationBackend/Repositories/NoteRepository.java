@@ -18,4 +18,5 @@ public interface NoteRepository extends JpaRepository<Note, Long> {
             @Param("clientId") Long clientId,
             @Param("productId") Long productId
     );
+
 }

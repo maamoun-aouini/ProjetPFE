@@ -7,7 +7,6 @@ import java.util.List;
 
 
 @AllArgsConstructor
-@NoArgsConstructor
 @Data
 @Entity
 public class Pays {
@@ -15,6 +14,7 @@ public class Pays {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // ou une autre stratégie selon votre besoin
     private Long id;
+    @Column(unique = true)
     private String nom;
     @OneToMany(mappedBy = "pays", cascade = CascadeType.ALL)
     private List<Ville> villes;
@@ -37,9 +37,7 @@ public class Pays {
         return nom;
     }
 
-    public void setNom(String nom) {
-        this.nom = nom;
-    }
+
 
     public List<Ville> getVilles() {
         return villes;
@@ -48,4 +46,10 @@ public class Pays {
     public void setVilles(List<Ville> villes) {
         this.villes = villes;
     }
+    // Pays.java
+    public void setNom(String nom) {
+        this.nom = nom != null ? nom.trim().toLowerCase() : null;
+    }
+
+
 }

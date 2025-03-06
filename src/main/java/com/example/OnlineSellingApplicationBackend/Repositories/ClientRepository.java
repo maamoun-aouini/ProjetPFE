@@ -20,6 +20,9 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
             "WHERE c.id = :clientId")
     Optional<Client> findByIdWithRelations(Long clientId);
     List<Client> findByActifTrue(); // Fetch only active clients
+    boolean existsByEmail(String email);
+    Optional<Client> findByEmail(String email);
+
 }
 
 

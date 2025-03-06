@@ -1,5 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,7 +19,6 @@ import java.util.Set;
 public class Client extends Utilisateur {
     @Enumerated(EnumType.STRING)
     private TypeClient type;
-
     private String description;
     private boolean actif = true;
     private String tel;
@@ -26,10 +26,11 @@ public class Client extends Utilisateur {
     @OneToOne(mappedBy = "client")
     private Entreprise entreprise;
 
-    @OneToOne
-    @JoinColumn(name = "adresse_id", unique = true, nullable = false)
-    private Adresse adresse;
 
+    @ManyToOne // Correction ici
+    @JoinColumn(name = "adresse_id", nullable = true)
+    @JsonIgnore
+    private Adresse adresse; // Plusieurs clients peuvent avoir la même adresse
 
     @OneToMany(mappedBy = "client")
     private Set<Favoris> favoris;
@@ -40,7 +41,21 @@ public class Client extends Utilisateur {
     @OneToMany(mappedBy = "client")
     private Set<Commande> commandes;
 
+    @OneToMany(mappedBy = "client")
+    private Set<Reclamation> reclamations;
 
+    // Méthode pour vérifier si le client a effectué au moins une commande
+    public boolean aPasseCommande() {
+        return !commandes.isEmpty();  // Vérifie si le client a au moins une commande
+    }
+
+    public Set<Reclamation> getReclamations() {
+        return reclamations;
+    }
+
+    public void setReclamations(Set<Reclamation> reclamations) {
+        this.reclamations = reclamations;
+    }
 
     public Set<Favoris> getFavoris() {
         return favoris;

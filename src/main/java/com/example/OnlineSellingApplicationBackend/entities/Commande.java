@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
 
 @AllArgsConstructor
@@ -30,7 +31,7 @@ public class Commande {
     private Adresse adresseLivraison;
 
     @OneToMany(mappedBy = "commande" , cascade = CascadeType.ALL)
-    private Set<LigneCommande> ligneCommandes;
+    private List<LigneCommande> ligneCommandes;
 
     @OneToOne(mappedBy = "commande")
     private Paiement paiement;
@@ -39,12 +40,12 @@ public class Commande {
     private TypeCommande type;
 
     @OneToMany(mappedBy = "commande")
-    private Set<LigneCommandPack> ligneCommandePack ;
+    private List<LigneCommandPack> ligneCommandePack ;
 
-    public Set<LigneCommandPack> getLigneCommandePack() {
+    public List<LigneCommandPack> getLigneCommandePack() {
         return ligneCommandePack;
     }
-    public void setLigneCommandePack(Set<LigneCommandPack> ligneCommandePack) {
+    public void setLigneCommandePack(List<LigneCommandPack> ligneCommandePack) {
         this.ligneCommandePack = ligneCommandePack;
     }
 
@@ -96,11 +97,11 @@ public class Commande {
         this.adresseLivraison = adresseLivraison;
     }
 
-    public Set<LigneCommande> getLigneCommandes() {
+    public List<LigneCommande> getLigneCommandes() {
         return ligneCommandes;
     }
 
-    public void setLigneCommandes(Set<LigneCommande> ligneCommandes) {
+    public void setLigneCommandes(List<LigneCommande> ligneCommandes) {
         this.ligneCommandes = ligneCommandes;
     }
 

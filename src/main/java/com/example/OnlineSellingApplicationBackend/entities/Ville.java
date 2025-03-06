@@ -15,7 +15,7 @@ public class Ville {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // ou une autre stratégie selon votre besoin
     private Long id;
-
+    @Column(name = "nom")
     private String nom;
 
     @ManyToOne
@@ -41,11 +41,10 @@ public class Ville {
     public String getNom() {
         return nom;
     }
-
+    // Ville.java
     public void setNom(String nom) {
-        this.nom = nom;
+        this.nom = nom != null ? nom.trim().toLowerCase() : null;
     }
-
     public Pays getPays() {
         return pays;
     }

@@ -1,4 +1,5 @@
 package com.example.OnlineSellingApplicationBackend.Services;
+import com.example.OnlineSellingApplicationBackend.DTO.updateCategoryParent;
 import com.example.OnlineSellingApplicationBackend.Repositories.CategoriesRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ProduitsRepository;
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
@@ -42,11 +43,17 @@ public class CategoriesService {
         categoriesRepository.delete(category);
     }
 
-    public Categories modiferCategory(Long id , Categories new_category) {
+    public Categories modiferCategory(Long id , updateCategoryParent new_category) {
         Categories category = categoriesRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
+        Categories parentCategory = null;
+        Long ID=new_category.getParentId();
+        if(ID!=null){
+         parentCategory = categoriesRepository.findById(new_category.getParentId())
+                .orElseThrow(() -> new RuntimeException("Parent Category not found"));}
         category.setDescription(new_category.getDescription());
-        category.setNom(new_category.getNom());
+        category.setNom(new_category.getName());
+        category.setParent(parentCategory);
         return categoriesRepository.save(category);
     }
     public Categories getCategory(Long id) {
@@ -55,7 +62,7 @@ public class CategoriesService {
         return category;
     }
     public List<Categories> getCategories() {
-        List<Categories> categories = categoriesRepository.findAll();
+        List<Categories> categories = categoriesRepository.findByParentIsNull();
         if(categories.isEmpty()){
             new RuntimeException("Categories is empty");
         }

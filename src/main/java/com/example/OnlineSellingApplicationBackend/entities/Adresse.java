@@ -1,11 +1,10 @@
 package com.example.OnlineSellingApplicationBackend.entities;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.util.Set;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -23,8 +22,8 @@ public class Adresse {
     @JoinColumn(name = "ville_id")
     private Ville ville;
 
-    @OneToOne(mappedBy = "adresse") // Synchronise avec Client.adresse
-    private Client client;
+    @OneToMany(mappedBy = "adresse", cascade = CascadeType.ALL) // Correction ici
+    private Set<Client> clients; // Une adresse peut être liée à plusieurs clients
 
     @OneToMany(mappedBy = "adresseLivraison", cascade = CascadeType.ALL)
     private Set<Commande> commandes;
@@ -42,7 +41,7 @@ public class Adresse {
     }
 
     public void setRue(String rue) {
-        this.rue = rue;
+        this.rue = rue != null ? rue.trim().toLowerCase() : null;
     }
 
     public String getNumero() {
@@ -50,7 +49,7 @@ public class Adresse {
     }
 
     public void setNumero(String numero) {
-        this.numero = numero;
+        this.numero = numero != null ? numero.trim().toLowerCase() : null;
     }
 
     public String getIndication() {
@@ -58,7 +57,7 @@ public class Adresse {
     }
 
     public void setIndication(String indication) {
-        this.indication = indication;
+        this.indication = indication != null ? indication.trim().toLowerCase() : null;
     }
 
     public Ville getVille() {
@@ -69,12 +68,12 @@ public class Adresse {
         this.ville = ville;
     }
 
-    public Client getClient() {
-        return client;
+    public Set<Client> getClients() {
+        return clients;
     }
 
-    public void setClient(Client client) {
-        this.client = client;
+    public void setClients(Set<Client> clients) {
+        this.clients = clients;
     }
 
     public Set<Commande> getCommandes() {

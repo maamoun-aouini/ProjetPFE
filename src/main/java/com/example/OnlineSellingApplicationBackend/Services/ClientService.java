@@ -5,10 +5,12 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Exeptions.*;
-
+import com.example.OnlineSellingApplicationBackend.Security.SecurityConfig;
 import java.util.Date;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -51,22 +53,40 @@ public class ClientService {
 
     @Autowired
     private NoteRepository noteRepository;
-
+    @Autowired
+    private PasswordEncoder passwordEncoder;
     /**
      * Register a new client account.
      */
-    public Client registerClient(Client client) {
+    public Client registerClient(ClientRegistrationRequest request) {
+        // 1. Check email uniqueness
+        if (clientRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email already exists");
+        }
+        // 2. Create client
+        Client client = new Client();
+        // ... set fields (email, password, etc.)
+
+        // 3. Process address (reuse existing if possible)
+        if (request.getAddress() != null) {
+            Adresse address = processAddress(request.getAddress());
+            client.setAdresse(address);
+        }
+        client.setMotDePasse(passwordEncoder.encode(request.getMotDePasse())); // Now works
+        client.setActif(request.isActif());
+        client.setNom(request.getNom());
+        client.setTel(request.getTel());
+        client.setType(request.getType());
+        client.setProfil(request.getProfil());
+        client.setEmail(request.getEmail());
         return clientRepository.save(client);
     }
-
     /**
      * Authenticate a client by email and password.
      */
-    public Optional<Client> authenticateClient(String email, String password) {
+   /* public Optional<Client> authenticateClient(String email, String password) {
         return clientRepository.findByEmailAndMotDePasse(email, password);
-    }
-
-
+    }*/
     /**
      * Update a client profile.
      */
@@ -92,13 +112,12 @@ public class ClientService {
         Optional<Client> clientOptional = clientRepository.findById(clientId);
         if (clientOptional.isPresent()) {
             Client client = clientOptional.get();
-            client.setMotDePasse(newPassword);
+            client.setMotDePasse(passwordEncoder.encode(newPassword)); // Secure password storage
             clientRepository.save(client);
         } else {
             throw new RuntimeException("Client not found");
         }
     }
-
     /**
      * Get all products.
      */
@@ -178,62 +197,75 @@ public class ClientService {
         favorisRepository.deleteByClientIdAndProduitId(clientId, productId);
     }
     public Commande createCommand(Long clientId, AddressRequest addressRequest, List<ProductRequest> productData) {
-        // Vérifier si le client existe
-        Optional<Client> clientOptional = clientRepository.findById(clientId);
-        if (clientOptional.isEmpty()) {
-            throw new RuntimeException("Client not found");
-        }
-        Client client = clientOptional.get();
+        // Verify client exists
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
 
-        // Vérifier que TypeCommand est bien reçu
-        System.out.println("TypeCommand received: " + "Produit");
+        // Process delivery address using shared logic
+        Adresse deliveryAddress = processAddress(addressRequest);
 
-        // Trouver ou créer le Pays et la Ville
-        Pays pays = paysRepository.findByNom(addressRequest.getNomPays())
-                .orElseGet(() -> paysRepository.save(new Pays(addressRequest.getNomPays())));
-
-        Ville ville = villeRepository.findByNomAndPays(addressRequest.getNomVille(), pays)
-                .orElseGet(() -> villeRepository.save(new Ville(addressRequest.getNomVille(), pays)));
-
-        // Créer l'adresse
-        Adresse adresse = new Adresse();
-        adresse.setRue(addressRequest.getRue());
-        adresse.setNumero(addressRequest.getNumero());
-        adresse.setIndication(addressRequest.getIndication());
-        adresse.setVille(ville);
-        Adresse savedAdresse = adresseRepository.save(adresse);
-
-        // Créer la commande
+        // Create command with proper enum handling
         Commande commande = new Commande();
-        try {
-            commande.setType(TypeCommande.valueOf("Produit")); // Vérifier l'Enum
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid TypeCommande value: " + "Produit");
-        }
+        commande.setType(TypeCommande.Produit);
         commande.setClient(client);
-        commande.setAdresseLivraison(savedAdresse);
+        commande.setAdresseLivraison(deliveryAddress);
         commande.setDateCommande(new Date());
         commande.setEtat(EtatCommande.EnCoursDeTraitement);
 
-        // Ajouter les produits à la commande
-        List<LigneCommande> ligneCommands = new ArrayList<>();
-        for (ProductRequest product : productData) {
-            Produits produit = produitRepository.findById(product.getId_product())
-                    .orElseThrow(() -> new RuntimeException("Product with ID " + product.getId_product() + " not found"));
+        // Process command lines
+        List<LigneCommande> ligneCommands = productData.stream()
+                .map(product -> {
+                    Produits produit = produitRepository.findById(product.getId_product())
+                            .orElseThrow(() -> new RuntimeException("Product not found: " + product.getId_product()));
 
-            LigneCommande ligneCommand = new LigneCommande();
-            ligneCommand.setCommande(commande);
-            ligneCommand.setProduit(produit);
-            ligneCommand.setQuantite(product.getQuantité());
-            ligneCommands.add(ligneCommand);
+                    LigneCommande lc = new LigneCommande();
+                    lc.setCommande(commande);
+                    lc.setProduit(produit);
+                    lc.setQuantite(product.getQuantité());
+                    return lc;
+                })
+                .toList();
+
+        // Save command and lines
+        commande.setLigneCommandes(ligneCommands);
+        return commandeRepository.save(commande);
+    }
+    private Adresse processAddress(AddressRequest request) {
+        // Normalize inputs
+        String normalizedPays = request.getNomPays().trim().toLowerCase();
+        String normalizedVille = request.getNomVille().trim().toLowerCase();
+        String normalizedRue = request.getRue().trim().toLowerCase();
+        String normalizedNumero = request.getNumero().trim().toLowerCase();
+        String normalizedIndication = request.getIndication() != null ?
+                request.getIndication().trim().toLowerCase() : null;
+
+        // Check existing address using DTO projection
+        Optional<AddressResponse> existingAddress = adresseRepository.findExistingAddress(
+                normalizedRue,
+                normalizedNumero,
+                normalizedVille,
+                normalizedPays,
+                normalizedIndication
+        );
+
+        if (existingAddress.isPresent()) {
+            return adresseRepository.getReferenceById(existingAddress.get().getId());
         }
 
-        // Sauvegarder la commande
-        Commande savedCommande = commandeRepository.save(commande);
-        ligneCommands.forEach(lc -> lc.setCommande(savedCommande));
-        ligneCommandeRepository.saveAll(ligneCommands);
+        // Create new address
+        Pays pays = paysRepository.findByNomIgnoreCase(normalizedPays)
+                .orElseGet(() -> paysRepository.save(new Pays(normalizedPays)));
 
-        return savedCommande;
+        Ville ville = villeRepository.findByNomIgnoreCaseAndPays(normalizedVille, pays)
+                .orElseGet(() -> villeRepository.save(new Ville(normalizedVille, pays)));
+
+        Adresse newAdresse = new Adresse();
+        newAdresse.setRue(normalizedRue);
+        newAdresse.setNumero(normalizedNumero);
+        newAdresse.setIndication(normalizedIndication);
+        newAdresse.setVille(ville);
+
+        return adresseRepository.save(newAdresse);
     }
 
     public List<Commande> getOrderHistory(Long clientId) {
@@ -372,5 +404,9 @@ public class ClientService {
         existingRating.setCommentaire(request.getComment());
 
         return noteRepository.save(existingRating);
+    }
+    public Note getRating(Long clientId, Long productId) {
+        return noteRepository.findByClientIdAndProduitId(clientId, productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Rating not found"));
     }
 }

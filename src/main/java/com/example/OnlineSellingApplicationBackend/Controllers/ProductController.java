@@ -17,26 +17,33 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/api/Products")
 public class ProductController {
     @Autowired
     private ProductService productService;
-
-    @GetMapping()
+    //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
+    @GetMapping
     public ResponseEntity<List<ProduitAdminDTO>> getAllProducts() {
         List<ProduitAdminDTO> products = productService.getAllProducts();
         return ResponseEntity.ok(products);
     }
+    //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
     @PutMapping("/{id}")
-    public ResponseEntity<ProductUpdateResponse> updateProductCategories(
+    public ResponseEntity<?> updateProductCategories(
             @PathVariable Long id,
             @RequestBody ProductUpdateRequest request
     ) {
+        try{
         ProductUpdateResponse response = productService.updateProductCategories(id, request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        }catch (ResourceNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body( "Category you want to add as parent is not found" + ex.getMessage());
+        }
     }
+    //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
     @PostMapping
     public ResponseEntity<?> createProduct(@RequestBody ProductCreateRequest request) {
         try {

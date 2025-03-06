@@ -41,67 +41,82 @@ public class PartnerService {
     @Autowired
     private NoteRepository noteRepository;
     public Commande createCommand(Long clientId, AddressRequest addressRequest, List<PackSellingRequest> packData) {
-        // Vérifier si le client existe
-        Optional<Client> clientOptional = clientRepository.findById(clientId);
-        if (clientOptional.isEmpty()) {
-            throw new RuntimeException("Client not found");
-        }
-        Client client = clientOptional.get();
+        // Verify client exists
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
 
-        // Vérifier TypeCommande
-        String typeCommandeStr = "Pack";
-        System.out.println("TypeCommand received: " + typeCommandeStr);
+        // Process delivery address using shared logic
+        Adresse deliveryAddress = processAddress(addressRequest);
 
-        // Trouver ou créer le Pays et la Ville
-        Pays pays = paysRepository.findByNom(addressRequest.getNomPays())
+        // Create command with proper enum handling
+        Commande commande = new Commande();
+        commande.setType(TypeCommande.Pack); // Direct enum access
+        commande.setClient(client);
+        commande.setAdresseLivraison(deliveryAddress);
+        commande.setDateCommande(new Date());
+        commande.setEtat(EtatCommande.EnCoursDeTraitement);
+
+        // Process command lines
+        List<LigneCommandPack> ligneCommands = packData.stream()
+                .map(pack -> {
+                    Paquet paquet = paquetRepository.findById(pack.getId_Pack())
+                            .orElseThrow(() -> new RuntimeException("Pack not found: " + pack.getId_Pack()));
+
+                    LigneCommandPack lc = new LigneCommandPack();
+                    lc.setCommande(commande);
+                    lc.setPaquet(paquet);
+                    lc.setQuantite(pack.getQuantite());
+                    return lc;
+                })
+                .toList();
+
+        // Save command and lines
+        commande.setLigneCommandePack(ligneCommands);
+        return commandeRepository.save(commande);
+    }
+
+    private Adresse processAddress(AddressRequest addressRequest) {
+        // Normalize inputs
+        String normalizedPays = addressRequest.getNomPays().trim().toLowerCase();
+        String normalizedVille = addressRequest.getNomVille().trim().toLowerCase();
+
+        // Find or create country
+        Pays pays = paysRepository.findByNomIgnoreCase(normalizedPays)
                 .orElseGet(() -> {
                     Pays newPays = new Pays();
-                    newPays.setNom(addressRequest.getNomPays());
+                    newPays.setNom(normalizedPays);
                     return paysRepository.save(newPays);
                 });
 
-        Ville ville = villeRepository.findByNomAndPays(addressRequest.getNomVille(), pays)
+        // Find or create city
+        Ville ville = villeRepository.findByNomIgnoreCaseAndPays(normalizedVille, pays)
                 .orElseGet(() -> {
                     Ville newVille = new Ville();
-                    newVille.setNom(addressRequest.getNomVille());
+                    newVille.setNom(normalizedVille);
                     newVille.setPays(pays);
                     return villeRepository.save(newVille);
                 });
-        // Créer l'adresse
-        Adresse adresse = new Adresse();
-        adresse.setRue(addressRequest.getRue());
-        adresse.setNumero(addressRequest.getNumero());
-        adresse.setIndication(addressRequest.getIndication());
-        adresse.setVille(ville);
-        Adresse savedAdresse = adresseRepository.save(adresse);
-        // Créer la commande
-        Commande commande = new Commande();
-        try {
-            commande.setType(TypeCommande.valueOf(typeCommandeStr)); // Vérifier l'Enum
-        } catch (IllegalArgumentException e) {
-            throw new RuntimeException("Invalid TypeCommande value: " + typeCommandeStr);
-        }
-        commande.setClient(client);
-        commande.setAdresseLivraison(savedAdresse);
-        commande.setDateCommande(new Date());
-        commande.setEtat(EtatCommande.EnCoursDeTraitement);
-        // Ajouter les packs à la commande
-        List<LigneCommandPack> ligneCommands = new ArrayList<>();
-        for (PackSellingRequest pack : packData) {
-            Paquet packfetch = paquetRepository.findById(pack.getId_Pack())
-                    .orElseThrow(() -> new RuntimeException("Pack with ID " + pack.getId_Pack()+ " not found"));
-            LigneCommandPack ligneCommand = new LigneCommandPack();
-            ligneCommand.setCommande(commande);
-            ligneCommand.setPaquet(packfetch);
-            ligneCommand.setQuantite(pack.getQuantite());
-            ligneCommands.add(ligneCommand);
-        }
-        // Sauvegarder la commande et ses packs
-        Commande savedCommande = commandeRepository.save(commande);
-        ligneCommands.forEach(lc -> lc.setCommande(savedCommande));
-        ligneCommandPackRepository.saveAll(ligneCommands);
 
-        return savedCommande;
+        // Find existing addresses
+        List<Adresse> existingAddresses = adresseRepository.findByRueIgnoreCaseAndNumeroIgnoreCaseAndIndicationIgnoreCaseAndVille(
+                addressRequest.getRue().trim(),
+                addressRequest.getNumero().trim(),
+                addressRequest.getIndication() != null ? addressRequest.getIndication().trim() : "",
+                ville
+        );
+
+        // Return first existing address or create a new one
+        if (!existingAddresses.isEmpty()) {
+            return existingAddresses.get(0); // Reuse the first matching address
+        } else {
+            Adresse newAdresse = new Adresse();
+            newAdresse.setRue(addressRequest.getRue().trim());
+            newAdresse.setNumero(addressRequest.getNumero().trim());
+            newAdresse.setIndication(addressRequest.getIndication() != null ?
+                    addressRequest.getIndication().trim() : "");
+            newAdresse.setVille(ville);
+            return adresseRepository.save(newAdresse);
+        }
     }
 
 }

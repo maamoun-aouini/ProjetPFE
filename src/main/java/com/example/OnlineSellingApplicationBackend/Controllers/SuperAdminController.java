@@ -1,50 +1,66 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 
-
-
 import com.example.OnlineSellingApplicationBackend.entities.Admin;
 import com.example.OnlineSellingApplicationBackend.Services.SuperAdminService;
 import com.example.OnlineSellingApplicationBackend.entities.SuperAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/superadmin")
+@RequestMapping("/api/superadmins")
 public class SuperAdminController {
 
     @Autowired
     private SuperAdminService superAdminService;
-    // Ajouter un Admin
-    @PostMapping("/ajouterAdmin")
-    public ResponseEntity<Admin> registerAdmin(@RequestBody Admin admin) {
+
+    /**
+     * Add a new Admin.
+     */
+    //@PreAuthorize("hasAnyRole('SUPERADMIN')")
+    @PostMapping("/admins")
+    public ResponseEntity<Admin> addAdmin(@RequestBody Admin admin) {
         Admin registeredAdmin = superAdminService.ajouterAdmin(admin);
         return ResponseEntity.ok(registeredAdmin);
     }
 
-    // Modifier un Admin
-    @PutMapping("/modifierAdmin/{adminId}")
-    public ResponseEntity<Admin> modifierAdmin(@PathVariable Long adminId, @RequestBody Admin adminDetails) {
+    /**
+     * Update an Admin.
+     */
+    //@PreAuthorize("hasAnyRole('SUPERADMIN')")
+    @PutMapping("/admins/{adminId}")
+    public ResponseEntity<Admin> updateAdmin(@PathVariable Long adminId, @RequestBody Admin adminDetails) {
         return ResponseEntity.ok(superAdminService.modifierAdmin(adminId, adminDetails));
     }
 
-    // Supprimer un Admin
-    @DeleteMapping("/supprimerAdmin/{adminId}")
-    public ResponseEntity<String> supprimerAdmin(@PathVariable Long adminId) {
+    /**
+     * Delete an Admin.
+     */
+    //@PreAuthorize("hasAnyRole('SUPERADMIN')")
+    @DeleteMapping("/admins/{adminId}")
+    public ResponseEntity<String> deleteAdmin(@PathVariable Long adminId) {
         superAdminService.supprimerAdmin(adminId);
-        return ResponseEntity.ok("Admin supprimé avec succès !");
+        return ResponseEntity.ok("Admin deleted successfully!");
     }
-    // Lister tous les Admins
-    @GetMapping("/listerAdmins")
-    public ResponseEntity<List<Admin>> listerAdmins() {
+
+    /**
+     * Get all Admins.
+     */
+    //@PreAuthorize("hasAnyRole('SUPERADMIN')")
+    @GetMapping("/admins")
+    public ResponseEntity<List<Admin>> getAllAdmins() {
         return ResponseEntity.ok(superAdminService.listerAdmins());
     }
-    //modifier profil superAdmin
-    @PutMapping("/modifierProfil/{id}")
-    public ResponseEntity<SuperAdmin> modifierProfil(
+
+    /**
+     * Update SuperAdmin profile.
+     */
+    //@PreAuthorize("hasAnyRole('SUPERADMIN')")
+    @PutMapping("/{id}")
+    public ResponseEntity<SuperAdmin> updateSuperAdminProfile(
             @PathVariable Long id,
             @RequestBody SuperAdmin updatedSuperAdmin) {
         SuperAdmin modifiedSuperAdmin = superAdminService.modifierProfil(id, updatedSuperAdmin);

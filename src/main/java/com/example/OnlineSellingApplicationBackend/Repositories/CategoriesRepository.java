@@ -12,7 +12,6 @@ import java.util.Optional;
 @Repository
 
 public interface CategoriesRepository extends JpaRepository<Categories, Long> {
-
     // Fetch all categories along with their subcategories
     @Query("SELECT c FROM Categories c LEFT JOIN FETCH c.subCategories WHERE c.parent IS NULL")
     List<Categories> findAllParentCategories();
@@ -22,5 +21,7 @@ public interface CategoriesRepository extends JpaRepository<Categories, Long> {
     Categories findCategoryWithSubcategories(@Param("id") Long id);
 
     public List<Categories> findAllByIdIn(List<Long> ids);
+    List<Categories> findByParentIsNull(); // Fetch top-level categories
+
 
 }
