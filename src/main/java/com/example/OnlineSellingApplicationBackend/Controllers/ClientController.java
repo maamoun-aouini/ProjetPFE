@@ -34,7 +34,11 @@ public class ClientController {
     /**
      * Register a new client account.
      */
-    @PostMapping
+    @GetMapping("/all")
+    public ResponseEntity<List<ClientInfoAdmin>> getAllClients(){
+        return ResponseEntity.ok(clientService.getAllClients());
+    }
+    @PostMapping("/register")
     public ResponseEntity<?> registerClient(@RequestBody ClientRegistrationRequest request) {
         try {
             Client client = clientService.registerClient(request);
@@ -73,37 +77,49 @@ public class ClientController {
     /**
      * Update client profile.
      */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER')")
     @PutMapping("/{clientId}")
     public ResponseEntity<?> updateClientProfile(
             @PathVariable Long clientId,
-            @RequestBody Client updatedClient,
-            HttpServletRequest request // To get old token if needed
+            @RequestBody ClientRegistrationRequest updatedClient,
+            HttpServletRequest request
     ) {
-        // Get current client (before update) if needed for comparison
-// In ClientController.updateClientProfile()
+        // Validate the request body
+        if (updatedClient == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Request body cannot be null"));
+        }
+        // Validate the client type
+        if (updatedClient.getType() == null ||
+                (!updatedClient.getType().equals(TypeClient.Particulier) &&
+                        !updatedClient.getType().equals(TypeClient.Partenaire))) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid client type"));
+        }
+
+        // Get the old email for token generation
         String oldEmail = ((CustomUserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getUsername();
-        // Update the client profile
-        Client client = clientService.updateClientProfile(clientId, updatedClient);
 
-        // Generate new token with updated details
-        CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(client.getEmail());
+        try {
+            // Update the client profile
+            ClientInfoAdmin client = clientService.updateClientProfile(clientId, updatedClient);
 
-        String newToken = jwtUtils.generateToken(
-                client.getEmail(),
-                userDetails.getAuthorities().stream()
-                        .map(GrantedAuthority::getAuthority)
-                        .collect(Collectors.toList()),
-                userDetails.getUserId()
-        );
+            // Generate a new token with updated details
+            CustomUserDetails userDetails = (CustomUserDetails) userDetailsService.loadUserByUsername(client.getClientInfoResponse().getEmail());
+            String newToken = jwtUtils.generateToken(
+                    client.getClientInfoResponse().getEmail(),
+                    userDetails.getAuthorities().stream()
+                            .map(GrantedAuthority::getAuthority)
+                            .collect(Collectors.toList()),
+                    userDetails.getUserId()
+            );
 
-        // Return both client and new token
-        return ResponseEntity.ok(Map.of(
-                "client", client,
-                "token", newToken
-        ));
+            // Return the updated client and new token
+            return ResponseEntity.ok(Map.of(
+                    "client", client,
+                    "token", newToken
+            ));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        }
     }
-
     /**
      * Reset password.
      */
@@ -127,11 +143,10 @@ public class ClientController {
      * Get products by category.
      */
     //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER' , 'SUPERADMIN' , 'ADMIN')")
-    @GetMapping("/categories/{categoryId}/products")
+    @GetMapping("/products/categories/{categoryId}")
     public List<ProduitDTO> getProductsByCategoryAndSubcategories(@PathVariable Long categoryId) {
         return clientService.getProductsByCategoryWithSubcategories(categoryId);
     }
-
     /**
      * Add a product to favorites.
      */
@@ -151,7 +166,6 @@ public class ClientController {
         List<FavoriteProductDTO> favoriteProducts = clientService.getClientFavorites(clientId);
         return ResponseEntity.ok(favoriteProducts);
     }
-
     /**
      * Remove a product from favorites.
      */

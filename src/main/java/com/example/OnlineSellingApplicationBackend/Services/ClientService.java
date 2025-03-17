@@ -8,6 +8,7 @@ import com.example.OnlineSellingApplicationBackend.Exeptions.*;
 import com.example.OnlineSellingApplicationBackend.Security.SecurityConfig;
 import java.util.Date;
 
+import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -58,6 +59,28 @@ public class ClientService {
     /**
      * Register a new client account.
      */
+    public List<ClientInfoAdmin> getAllClients() {
+        return clientRepository.findAll()
+                .stream()
+                .map(client -> new ClientInfoAdmin(
+                        new ClientInfoResponse(
+                                client.getId(),
+                                client.getNom(),
+                                client.getEmail(),
+                                client.getTel(),
+                                client.getType() != null ? client.getType().toString() : "N/A", // Handle null type
+                                client.getDescription(),
+                                Optional.ofNullable(client.getEntreprise())
+                                        .map(Entreprise::getNom)
+                                        .orElse("N/A"),
+                                Optional.ofNullable(client.getEntreprise())
+                                        .map(Entreprise::getMatriculeFiscale)
+                                        .orElse("N/A")
+                        ),
+                        new AddressResponse(client.getAdresse())
+                ))
+                .collect(Collectors.toList());
+    }
     public Client registerClient(ClientRegistrationRequest request) {
         // 1. Check email uniqueness
         if (clientRepository.existsByEmail(request.getEmail())) {
@@ -90,19 +113,123 @@ public class ClientService {
     /**
      * Update a client profile.
      */
-    public Client updateClientProfile(Long clientId, Client updatedClient) {
-        Optional<Client> clientOptional = clientRepository.findById(clientId);
-        if (clientOptional.isPresent()) {
-            Client client = clientOptional.get();
-            client.setNom(updatedClient.getNom());
-            client.setEmail(updatedClient.getEmail());
-            client.setProfil(updatedClient.getProfil());
-            client.setDescription(updatedClient.getDescription());
-            client.setTel(updatedClient.getTel());
-            client.setType(updatedClient.getType());
-            return clientRepository.save(client);
+//    public Client updateClientProfile(Long clientId, ClientRegistrationRequest updatedClient) {
+//        Optional<Client> clientOptional = clientRepository.findById(clientId);
+//        if (clientOptional.isPresent()) {
+//            Client client = clientOptional.get();
+//            if (updatedClient.getAddress() != null) {
+//                if(client.getAdresse() != null){
+//                if(canDeleteAddress(client)){
+//                    Ville VilleToRemove=client.getAdresse().getVille();
+//                    Pays paysToRemove=client.getAdresse().getVille().getPays();
+//                    Adresse AdresseToRemove = client.getAdresse();
+//                    Adresse newAddress = processAddress(updatedClient.getAddress());
+//                    client.setAdresse(newAddress);
+//                   // if(adresseRepository.findAdressByVille(VilleToRemove.getId()).isEmpty() && villeRepository.findByPays(paysToRemove).isEmpty()){
+//                            adresseRepository.delete(AdresseToRemove);
+////                            paysRepository.delete(paysToRemove);
+////                            villeRepository.delete(VilleToRemove);
+//                    //}
+//                }else{ Adresse newAddress = processAddress(updatedClient.getAddress());
+//                    client.setAdresse(newAddress);}
+//                }else{
+//                    Adresse newAddress = processAddress(updatedClient.getAddress());
+//                    client.setAdresse(newAddress);
+//                }
+//            }
+//            // Update other fields
+//            client.setMotDePasse(passwordEncoder.encode(updatedClient.getMotDePasse()));
+//            client.setActif(updatedClient.isActif());
+//            client.setNom(updatedClient.getNom());
+//            client.setTel(updatedClient.getTel());
+//            client.setType(updatedClient.getType());
+//            client.setProfil(updatedClient.getProfil());
+//            client.setEmail(updatedClient.getEmail());
+//            return clientRepository.save(client);
+//        }
+//        throw new RuntimeException("Client not found");
+//    }
+    public ClientInfoAdmin updateClientProfile(Long clientId, ClientRegistrationRequest updatedClient) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+        if (updatedClient.getAddress() != null) {
+            handleAddressUpdate(client, updatedClient.getAddress());
         }
-        throw new RuntimeException("Client not found");
+            client.setMotDePasse(passwordEncoder.encode(updatedClient.getMotDePasse()));
+            client.setActif(updatedClient.isActif());
+            client.setNom(updatedClient.getNom());
+            client.setTel(updatedClient.getTel());
+            if(updatedClient.getType().equals(TypeClient.Particulier) || updatedClient.getType().equals(TypeClient.Partenaire)){
+                client.setType(updatedClient.getType());
+            }
+            client.setType(updatedClient.getType());  // Use the input value
+            client.setProfil(updatedClient.getProfil());
+            client.setEmail(updatedClient.getEmail());
+            Client clientResult= clientRepository.save(client);
+             return new ClientInfoAdmin(
+                new ClientInfoResponse(
+                        clientResult.getId(),
+                        clientResult.getNom(),
+                        clientResult.getEmail(),
+                        clientResult.getTel(),
+                        clientResult.getType() != null ? clientResult.getType().toString() : "N/A", // Handle null type
+                        clientResult.getDescription(),
+                        Optional.ofNullable(clientResult.getEntreprise())
+                                .map(Entreprise::getNom)
+                                .orElse("N/A"),
+                        Optional.ofNullable(clientResult.getEntreprise())
+                                .map(Entreprise::getMatriculeFiscale)
+                                .orElse("N/A")
+                ),
+                new AddressResponse(clientResult.getAdresse()));
+    }
+    private void handleAddressUpdate(Client client, AddressResponse newAddressData) {
+        if (client.getAdresse() != null) {
+            Adresse oldAddress = client.getAdresse();
+            Ville oldVille = oldAddress.getVille();
+            Pays oldPays = oldVille.getPays();
+
+            // Check if address can be deleted
+            if (canDeleteAddress(client)) {
+                // Clear client's address reference first
+                client.setAdresse(null);
+                clientRepository.save(client); // Flush changes
+
+                // Now safe to delete
+                adresseRepository.delete(oldAddress);
+
+                // Cleanup ville and pays
+                cleanUpVilleAndPays(oldVille, oldPays);
+            }
+        }
+
+        // Process and set new address
+        Adresse newAddress = processAddress(newAddressData);
+        client.setAdresse(newAddress);
+    }
+
+    private void cleanUpVilleAndPays(Ville ville, Pays pays) {
+        if (ville != null && adresseRepository.countByVille(ville) == 0) {
+            villeRepository.delete(ville);
+        }
+
+        if (pays != null && villeRepository.countByPays(pays) == 0) {
+            paysRepository.delete(pays);
+        }
+    }
+    private boolean canDeleteAddress(Client client) {
+        // Check if other clients or orders use the old address
+        List<Client> otherClients = null;
+        List<Commande> orders = null ;
+        if(client.getAdresse() != null){
+         otherClients = clientRepository.findClientsByAdresseId(
+                client.getAdresse().getId(),
+                client.getId()
+        );
+         orders = commandeRepository.findCommandesByAdresseId(
+                    client.getAdresse().getId()
+            );}
+        return (otherClients == null || otherClients.isEmpty()) && (orders == null || orders.isEmpty());
     }
 
     /**
@@ -196,7 +323,7 @@ public class ClientService {
         }
         favorisRepository.deleteByClientIdAndProduitId(clientId, productId);
     }
-    public Commande createCommand(Long clientId, AddressRequest addressRequest, List<ProductRequest> productData) {
+    public Commande createCommand(Long clientId, AddressResponse addressRequest, List<ProductRequest> productData) {
         // Verify client exists
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Client not found"));
@@ -230,17 +357,15 @@ public class ClientService {
         commande.setLigneCommandes(ligneCommands);
         return commandeRepository.save(commande);
     }
-    private Adresse processAddress(AddressRequest request) {
+    private Adresse processAddress(AddressResponse request) {
         // Normalize inputs
-        String normalizedPays = request.getNomPays().trim().toLowerCase();
-        String normalizedVille = request.getNomVille().trim().toLowerCase();
-        String normalizedRue = request.getRue().trim().toLowerCase();
-        String normalizedNumero = request.getNumero().trim().toLowerCase();
-        String normalizedIndication = request.getIndication() != null ?
-                request.getIndication().trim().toLowerCase() : null;
-
+        String normalizedPays = request.getPays().trim().toLowerCase() ;
+        String normalizedVille = request.getVille().trim().toLowerCase();
+        String normalizedRue =   request.getRue().trim().toLowerCase() ;
+        String normalizedNumero =  request.getNumero().trim().toLowerCase();
+        String normalizedIndication =  request.getIndication().trim().toLowerCase() ;
         // Check existing address using DTO projection
-        Optional<AddressResponse> existingAddress = adresseRepository.findExistingAddress(
+        List<AddressResponse> existingAddresses = adresseRepository.findExistingAddress(
                 normalizedRue,
                 normalizedNumero,
                 normalizedVille,
@@ -248,26 +373,40 @@ public class ClientService {
                 normalizedIndication
         );
 
-        if (existingAddress.isPresent()) {
-            return adresseRepository.getReferenceById(existingAddress.get().getId());
+        if (!existingAddresses.isEmpty()) {
+            // Always return the first one consistently (or add logic to pick the most relevant)
+            return adresseRepository.findById(existingAddresses.get(0).getId())
+                    .orElseThrow(() -> new RuntimeException("Address not found"));
         }
 
-        // Create new address
-        Pays pays = paysRepository.findByNomIgnoreCase(normalizedPays)
-                .orElseGet(() -> paysRepository.save(new Pays(normalizedPays)));
 
-        Ville ville = villeRepository.findByNomIgnoreCaseAndPays(normalizedVille, pays)
-                .orElseGet(() -> villeRepository.save(new Ville(normalizedVille, pays)));
 
+        // Create new address components with proper persistence
+        List<Pays> existingPays = paysRepository.findByNomIgnoreCase(normalizedPays);
+        Pays pays;
+        if (!existingPays.isEmpty()) {
+            pays = existingPays.get(0); // Take first existing Pays
+        } else {
+            pays = new Pays(normalizedPays);
+            pays = paysRepository.save(pays);
+        }
+
+        // Process Ville
+        List<Ville> existingVilles = villeRepository.findByNomIgnoreCaseAndPays(normalizedVille, pays);
+        Ville ville;
+        if (!existingVilles.isEmpty()) {
+            ville = existingVilles.get(0); // Take first existing Ville
+        } else {
+            ville = new Ville(normalizedVille, pays);
+            ville = villeRepository.save(ville);
+        }
         Adresse newAdresse = new Adresse();
         newAdresse.setRue(normalizedRue);
         newAdresse.setNumero(normalizedNumero);
         newAdresse.setIndication(normalizedIndication);
         newAdresse.setVille(ville);
-
         return adresseRepository.save(newAdresse);
     }
-
     public List<Commande> getOrderHistory(Long clientId) {
         // Fetch and return all commandes for the client
         return commandeRepository.findCommandesByClientId(clientId);

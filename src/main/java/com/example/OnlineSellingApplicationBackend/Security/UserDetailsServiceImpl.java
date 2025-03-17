@@ -10,11 +10,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService{
     @Autowired
@@ -55,7 +53,6 @@ public class UserDetailsServiceImpl implements UserDetailsService{
                 user.getId() // Assuming Utilisateur has getId()
         );
     }
-
     private String determineRole(Utilisateur user) {
         if (user instanceof SuperAdmin) return "SUPERADMIN";
         if (user instanceof Admin) return "ADMIN";

@@ -3,7 +3,7 @@ package com.example.OnlineSellingApplicationBackend.DTO;
 import java.util.List;
 
 public class CommandRequest {
-    private AddressRequest address;
+    private AddressResponse address;
     private List<ProductRequest> products;
     private String TypeCommande;
 
@@ -14,13 +14,12 @@ public class CommandRequest {
     public void setTypeCommande(String typeCommande) {
         TypeCommande = typeCommande;
     }
-
     // Getters and Setters
-    public AddressRequest getAddress() {
+    public AddressResponse getAddress() {
         return address;
     }
 
-    public void setAddress(AddressRequest address) {
+    public void setAddress(AddressResponse address) {
         this.address = address;
     }
 

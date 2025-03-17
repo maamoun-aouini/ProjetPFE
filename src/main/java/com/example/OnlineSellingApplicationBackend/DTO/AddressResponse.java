@@ -10,16 +10,27 @@ public class AddressResponse {
     private String ville;
     private String pays;
 
+    // Default constructor (required by Jackson)
+    public AddressResponse() {
+    }
+
     // Constructor from Entity
     public AddressResponse(Adresse adresse) {
         this.id = adresse.getId();
         this.rue = adresse.getRue();
         this.numero = adresse.getNumero();
         this.indication = adresse.getIndication();
-        this.ville = adresse.getVille().getNom();
-        this.pays = adresse.getVille().getPays().getNom();
+
+        // Add null checks for ville and pays
+        if (adresse.getVille() != null) {
+            this.ville = adresse.getVille().getNom();
+            if (adresse.getVille().getPays() != null) {
+                this.pays = adresse.getVille().getPays().getNom();
+            }
+        }
     }
 
+    // Getters and setters
     public Long getId() {
         return id;
     }

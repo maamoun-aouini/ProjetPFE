@@ -13,7 +13,6 @@ public class Adresse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
     private String rue;
     private String numero;
     private String indication;
@@ -22,8 +21,8 @@ public class Adresse {
     @JoinColumn(name = "ville_id")
     private Ville ville;
 
-    @OneToMany(mappedBy = "adresse", cascade = CascadeType.ALL) // Correction ici
-    private Set<Client> clients; // Une adresse peut être liée à plusieurs clients
+    @OneToMany(mappedBy = "adresse", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    private Set<Client> clients;
 
     @OneToMany(mappedBy = "adresseLivraison", cascade = CascadeType.ALL)
     private Set<Commande> commandes;

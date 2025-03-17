@@ -19,6 +19,9 @@ public interface CommandeRepository extends CrudRepository<Commande, Long> {
             "ORDER BY c.dateCommande DESC")
     List<Commande> findCommandesByClientId(@Param("clientId") Long clientId);
 
+    @Query("SELECT c FROM Commande c " +
+            "WHERE c.adresseLivraison.id = :adresseId " )
+    List<Commande> findCommandesByAdresseId(@Param("adresseId") Long adresseId);
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
             "FROM Commande c " +

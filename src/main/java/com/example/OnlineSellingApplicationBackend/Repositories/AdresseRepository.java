@@ -23,6 +23,7 @@ public interface AdresseRepository extends JpaRepository<Adresse, Long> {
             @Param("indication") String indication,
             @Param("ville") Ville ville
     );
+
     @Query("SELECT a FROM Adresse a " +
             "WHERE LOWER(a.rue) = LOWER(:rue) " +
             "AND LOWER(a.numero) = LOWER(:numero) " +
@@ -41,11 +42,17 @@ public interface AdresseRepository extends JpaRepository<Adresse, Long> {
             "AND a.ville.nom = LOWER(:villeNom) " +
             "AND a.ville.pays.nom = LOWER(:paysNom) " +
             "AND (a.indication IS NULL OR LOWER(a.indication) = LOWER(:indication))")
-    Optional<AddressResponse> findExistingAddress(
+    List<AddressResponse> findExistingAddress(
             @Param("rue") String rue,
             @Param("numero") String numero,
             @Param("villeNom") String villeNom,
             @Param("paysNom") String paysNom,
             @Param("indication") String indication
     );
+@Query("SELECT new com.example.OnlineSellingApplicationBackend.DTO.AddressResponse(a) FROM Adresse a where (a.ville) = : vlId")
+List<AddressResponse> findAdressByVille(
+        @Param("vlId") Long vlId
+);
+    @Query("SELECT COUNT(a) FROM Adresse a WHERE a.ville = :ville")
+    long countByVille(@Param("ville") Ville ville);
 }

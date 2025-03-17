@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Entity
 @EqualsAndHashCode(callSuper = true)
-public class SuperAdmin extends Admin {
+public class SuperAdmin extends Utilisateur{
     private String superAdminSpecificField; // Example field specific to SuperAdmin
 
     public String getSuperAdminSpecificField() {

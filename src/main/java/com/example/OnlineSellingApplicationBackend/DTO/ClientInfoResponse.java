@@ -1,5 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
+import jakarta.annotation.Nullable;
 import lombok.Data;
 
 @Data
@@ -8,10 +9,42 @@ public class ClientInfoResponse {
     private String nom;
     private String email;
     private String tel;
-    private String type;
+    private String type ;
     private String description;
     private String entrepriseNom; // If client belongs to an entreprise
     private String matriculeFiscale; // If client belongs to an entreprise
+    private @Nullable AddressResponse addressResponse;
+
+    public AddressResponse getAddressResponse() {
+        return addressResponse;
+    }
+
+    public void setAddressResponse(AddressResponse addressResponse) {
+        this.addressResponse = addressResponse;
+    }
+
+    public ClientInfoResponse(Long id, String nom, String email, String tel, String type, String description, String entrepriseNom, String matriculeFiscale, AddressResponse addressResponse) {
+        this.id = id;
+        this.nom = nom;
+        this.email = email;
+        this.tel = tel;
+        this.type = type;
+        this.description = description;
+        this.entrepriseNom = entrepriseNom;
+        this.matriculeFiscale = matriculeFiscale;
+        this.addressResponse = addressResponse;
+    }
+
+    public ClientInfoResponse(Long id, String nom, String email, String tel, String type, String description, String entrepriseNom, String matriculeFiscale) {
+        this.id = id;
+        this.nom = nom;
+        this.email = email;
+        this.tel = tel;
+        this.type = type;
+        this.description = description;
+        this.entrepriseNom = entrepriseNom;
+        this.matriculeFiscale = matriculeFiscale;
+    }
 
     public Long getId() {
         return id;

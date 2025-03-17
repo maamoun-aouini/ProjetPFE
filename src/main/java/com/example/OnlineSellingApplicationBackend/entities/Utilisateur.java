@@ -14,9 +14,8 @@ public abstract class Utilisateur {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO) // Use AUTO for TABLE_PER_CLASS
     private Long id;
-
     private String nom;
-
+    @Column(unique = true)
     private String email;
     private String motDePasse;
     private String profil;
@@ -40,8 +39,6 @@ public abstract class Utilisateur {
     public String getProfil() {
         return profil;
     }
-
-
 
     public void setNom(String nom) {
         this.nom = nom;

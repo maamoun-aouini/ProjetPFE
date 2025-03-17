@@ -7,6 +7,7 @@ import com.example.OnlineSellingApplicationBackend.entities.Admin;
 import com.example.OnlineSellingApplicationBackend.entities.SuperAdmin;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,12 +32,31 @@ public class SuperAdminService {
 
     @Autowired
     private ClientRepository clientRepository;
-
+    @Autowired
+    private PasswordEncoder passwordEncoder;
     // Ajouter un Admin
     public Admin ajouterAdmin(Admin admin) {
         return adminRepository.save(admin);
     }
+    public SuperAdmin ajouterSuperAdmin(SuperAdmin superAdmin) {
+        Optional<Client> client = clientRepository.findByEmail(superAdmin.getEmail());
+        if(client.isEmpty()){
+            Optional<Admin> admin = adminRepository.findByEmail(superAdmin.getEmail());
+            if(!admin.isEmpty()){
+                throw new RuntimeException("The email you are using is registred in the admin table");
+            }
+        }else{
+            throw new RuntimeException("The email you are using is registred in the client table");
+        }
+        SuperAdmin superadmin=new SuperAdmin();
+        superadmin.setProfil(superAdmin.getProfil());
+        superadmin.setNom(superAdmin.getNom());
+        superadmin.setEmail(superAdmin.getEmail());
 
+        superadmin.setMotDePasse(passwordEncoder.encode(superAdmin.getMotDePasse())); // Now works
+
+        return superAdminRepository.save(superadmin);
+    }
     // Modifier un Admin
     public Admin modifierAdmin(Long adminId, Admin adminDetails) {
         Optional<Admin> existingAdmin = adminRepository.findById(adminId);

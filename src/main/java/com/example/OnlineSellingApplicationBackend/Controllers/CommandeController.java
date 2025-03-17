@@ -41,7 +41,6 @@ public class CommandeController {
         Commande commande = clientService.createCommand(clientId, commandRequest.getAddress(), commandRequest.getProducts());
         return ResponseEntity.ok(commande);
     }
-
     /**
      * Get order history of a client.
      */

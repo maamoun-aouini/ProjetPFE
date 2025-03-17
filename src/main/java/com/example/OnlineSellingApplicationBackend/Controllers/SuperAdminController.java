@@ -9,14 +9,24 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
-@RequestMapping("/api/superadmins")
+@RequestMapping("/api/superadmin")
 public class SuperAdminController {
 
     @Autowired
     private SuperAdminService superAdminService;
+    @PostMapping
+    public ResponseEntity<?> addSuperAdmin(@RequestBody SuperAdmin superAdmin) {
+        try{
+            SuperAdmin registeredAdmin = superAdminService.ajouterSuperAdmin(superAdmin);
+            return ResponseEntity.ok(registeredAdmin);
+        }catch (RuntimeException ex){
+            return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
+        }
 
+    }
     /**
      * Add a new Admin.
      */
@@ -26,7 +36,6 @@ public class SuperAdminController {
         Admin registeredAdmin = superAdminService.ajouterAdmin(admin);
         return ResponseEntity.ok(registeredAdmin);
     }
-
     /**
      * Update an Admin.
      */

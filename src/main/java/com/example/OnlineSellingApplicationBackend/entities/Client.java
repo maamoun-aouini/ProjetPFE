@@ -1,50 +1,39 @@
 package com.example.OnlineSellingApplicationBackend.entities;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-
-import java.util.List;
 import java.util.Set;
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
 @Entity
 @EqualsAndHashCode(callSuper = true) // Ensures correct inheritance handling
-
 public class Client extends Utilisateur {
     @Enumerated(EnumType.STRING)
-    private TypeClient type;
+    @Column(nullable = false)
+    private TypeClient type = TypeClient.Particulier;
     private String description;
     private boolean actif = true;
     private String tel;
-
     @OneToOne(mappedBy = "client")
     private Entreprise entreprise;
-
-
     @ManyToOne // Correction ici
     @JoinColumn(name = "adresse_id", nullable = true)
     @JsonIgnore
     private Adresse adresse; // Plusieurs clients peuvent avoir la même adresse
-
     @OneToMany(mappedBy = "client")
     private Set<Favoris> favoris;
-
     @OneToMany(mappedBy = "client")
     private Set<Note> notes;
-
     @OneToMany(mappedBy = "client")
     private Set<Commande> commandes;
-
     @OneToMany(mappedBy = "client")
     private Set<Reclamation> reclamations;
-
     // Méthode pour vérifier si le client a effectué au moins une commande
+
     public boolean aPasseCommande() {
         return !commandes.isEmpty();  // Vérifie si le client a au moins une commande
     }

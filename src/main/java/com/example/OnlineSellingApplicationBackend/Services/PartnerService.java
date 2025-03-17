@@ -81,22 +81,24 @@ public class PartnerService {
         String normalizedVille = addressRequest.getNomVille().trim().toLowerCase();
 
         // Find or create country
-        Pays pays = paysRepository.findByNomIgnoreCase(normalizedPays)
-                .orElseGet(() -> {
-                    Pays newPays = new Pays();
-                    newPays.setNom(normalizedPays);
-                    return paysRepository.save(newPays);
-                });
+        List<Pays> existingPays = paysRepository.findByNomIgnoreCase(normalizedPays);
+        Pays pays;
+        if (!existingPays.isEmpty()) {
+            pays = existingPays.get(0); // Take first existing Pays
+        } else {
+            pays = new Pays(normalizedPays);
+            pays = paysRepository.save(pays);
+        }
 
-        // Find or create city
-        Ville ville = villeRepository.findByNomIgnoreCaseAndPays(normalizedVille, pays)
-                .orElseGet(() -> {
-                    Ville newVille = new Ville();
-                    newVille.setNom(normalizedVille);
-                    newVille.setPays(pays);
-                    return villeRepository.save(newVille);
-                });
-
+        // Process Ville
+        List<Ville> existingVilles = villeRepository.findByNomIgnoreCaseAndPays(normalizedVille, pays);
+        Ville ville;
+        if (!existingVilles.isEmpty()) {
+            ville = existingVilles.get(0); // Take first existing Ville
+        } else {
+            ville = new Ville(normalizedVille, pays);
+            ville = villeRepository.save(ville);
+        }
         // Find existing addresses
         List<Adresse> existingAddresses = adresseRepository.findByRueIgnoreCaseAndNumeroIgnoreCaseAndIndicationIgnoreCaseAndVille(
                 addressRequest.getRue().trim(),
