@@ -3,7 +3,7 @@ package com.example.OnlineSellingApplicationBackend.DTO;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ProductUpdateRequest {
+public class ProductUpdateCategoriesRequest {
     private Set<Long> categoryIds = new HashSet<>(); // Initialize here
 
     // Getter and Setter

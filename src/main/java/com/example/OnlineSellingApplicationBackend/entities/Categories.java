@@ -4,10 +4,12 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -20,21 +22,35 @@ public class Categories {
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
+    @NotBlank(message = "Category name is required")
     private String nom;
+
+    @NotBlank(message = "Category description is required")
     private String description;
+
+    @ElementCollection
+    private Set<String> photo = new HashSet<>(); // Initialize to avoid null issues
 
     @ManyToOne
     @JoinColumn(name = "parent_id")
-    @JsonBackReference // This avoids recursive serialization
+    @JsonBackReference // Avoids recursive serialization
     private Categories parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference // This handles parent-child relationships during serialization
+    @JsonManagedReference // Handles parent-child relationships during serialization
     private List<Categories> subCategories;
 
     @ManyToMany(mappedBy = "categories")
     @JsonIgnore
-    private Set<Produits> produits;
+    private Set<Produits> produits = new HashSet<>(); // Initialize to avoid null issues
+
+    public Set<String> getPhoto() {
+        return photo;
+    }
+
+    public void setPhoto(Set<String> photo) {
+        this.photo = photo;
+    }
 
     public Set<Produits> getProduits() {
         return produits;

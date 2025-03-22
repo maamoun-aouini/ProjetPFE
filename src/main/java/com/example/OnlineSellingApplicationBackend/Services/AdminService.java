@@ -1,10 +1,18 @@
 package com.example.OnlineSellingApplicationBackend.Services;
 
 
+import com.example.OnlineSellingApplicationBackend.Repositories.AdminRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ClientRepository;
+import com.example.OnlineSellingApplicationBackend.entities.Admin;
 import com.example.OnlineSellingApplicationBackend.entities.Client;
 import com.example.OnlineSellingApplicationBackend.entities.Commande;
+import com.example.OnlineSellingApplicationBackend.entities.SuperAdmin;
+import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -12,19 +20,24 @@ import java.util.stream.Collectors;
 @Service
 public class AdminService {
 
-    private final ClientRepository clientRepository;
+    @Autowired
+    private AdminRepository adminRepository;
 
+    @Autowired
+    private ClientRepository clientRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-    public AdminService(ClientRepository clientRepository) {
-        this.clientRepository = clientRepository;
-    }
+    @Autowired
+    private FileStorageService fileStorageService;
+    // Ajouter un Admin
 
     // Méthode pour désactiver un client
-    public boolean desactiverClient(Long clientId) {
+    public boolean desactiverActiverClient(Long clientId) {
         Optional<Client> clientOptional = clientRepository.findById(clientId);
         if (clientOptional.isPresent()) {
             Client client = clientOptional.get();
-            client.setActif(false); // Désactiver le client
+            client.setActif(client.isActif() == false ? true : false);
             clientRepository.save(client);
             return true;
         }
@@ -102,6 +115,34 @@ public class AdminService {
         }).collect(Collectors.toList());  // Collecter dans une List<Map<String, Object>>
     }
 
+    public Admin getCurrentAdmin() {
+        // Get the email of the currently authenticated user
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Retrieve the SuperAdmin by email
+        return adminRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
+    }
 
 
+
+    @Transactional
+    public Admin updateProfile(Long id, Admin updatedAdmin, MultipartFile file) {
+        Admin admin = adminRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Admin not found!"));
+
+        if (file != null && !file.isEmpty()) {
+            String fileName = fileStorageService.storeFile(file);
+            admin.setProfil("/uploads/" + fileName);
+        }
+
+        admin.setNom(updatedAdmin.getNom());
+        admin.setEmail(updatedAdmin.getEmail());
+
+        if (updatedAdmin.getMotDePasse() != null && !updatedAdmin.getMotDePasse().isEmpty()) {
+            admin.setMotDePasse(passwordEncoder.encode(updatedAdmin.getMotDePasse()));
+        }
+        return adminRepository.save(admin);
+
+    }
 }

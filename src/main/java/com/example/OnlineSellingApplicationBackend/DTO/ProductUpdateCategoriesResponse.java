@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ProductUpdateResponse {
+public class ProductUpdateCategoriesResponse {
     private Long productId;
     private List<CategoryMessage> addedCategories = new ArrayList<>();
     private List<CategoryMessage> skippedCategories = new ArrayList<>();

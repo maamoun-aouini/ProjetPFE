@@ -1,34 +1,26 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
-
-
 import java.util.HashSet;
 import java.util.Set;
-
-public class ProductCreateRequest {
+public class ProductCreateUpdateRequest {
     private String nom;
     private String description;
     private double promotionPartenaire;
     private double promotionParticulier;
     private String selection;
-    private String photo;
+    private Set<String> photo;
     private int quantite;
     private double prix;
     private boolean disponibilite;
-
     private Set<Long> categoryIds = new HashSet<>();
-
     public String getNom() {
         return nom;
     }
-
     public void setNom(String nom) {
         this.nom = nom;
     }
-
     public String getDescription() {
         return description;
     }
-
     public void setDescription(String description) {
         this.description = description;
     }
@@ -57,11 +49,12 @@ public class ProductCreateRequest {
         this.selection = selection;
     }
 
-    public String getPhoto() {
+
+    public Set<String> getPhoto() {
         return photo;
     }
 
-    public void setPhoto(String photo) {
+    public void setPhoto(Set<String> photo) {
         this.photo = photo;
     }
 

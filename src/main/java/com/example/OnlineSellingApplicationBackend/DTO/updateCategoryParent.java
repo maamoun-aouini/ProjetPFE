@@ -1,18 +1,14 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
+import java.util.Set;
+
 public class updateCategoryParent {
-    private Long parentId;
     private String name;
     private String description;
+    private Long parentId;
+    private Set<String> photo;
 
-    public Long getParentId() {
-        return parentId;
-    }
-
-    public void setParentId(Long parentId) {
-        this.parentId = parentId;
-    }
-
+    // Getters and Setters
     public String getName() {
         return name;
     }
@@ -27,5 +23,21 @@ public class updateCategoryParent {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Long getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(Long parentId) {
+        this.parentId = parentId;
+    }
+
+    public Set<String> getPhoto() {
+        return photo;
+    }
+
+    public void setPhoto(Set<String> photo) {
+        this.photo = photo;
     }
 }

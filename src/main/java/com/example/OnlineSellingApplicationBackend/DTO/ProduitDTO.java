@@ -12,12 +12,12 @@ public class ProduitDTO {
     private Long id;
     private String nom;
     private String description;
-    private String photo;
+    private Set<String> photo;
     private int quantite;
     private double prix;
     private Set<Categories> categories;
 
-    public ProduitDTO(Long id, String nom, String description, String photo, int quantite, double prix, Set<Categories> categories) {
+    public ProduitDTO(Long id, String nom, String description, Set<String> photo, int quantite, double prix, Set<Categories> categories) {
         this.id = id;
         this.nom = nom;
         this.description = description;
@@ -51,11 +51,11 @@ public class ProduitDTO {
         this.description = description;
     }
 
-    public String getPhoto() {
+    public Set<String> getPhoto() {
         return photo;
     }
 
-    public void setPhoto(String photo) {
+    public void setPhoto(Set<String> photo) {
         this.photo = photo;
     }
 

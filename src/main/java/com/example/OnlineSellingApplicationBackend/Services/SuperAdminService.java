@@ -1,15 +1,20 @@
 package com.example.OnlineSellingApplicationBackend.Services;
 
 /*gestion des admin  /  retirer client */
+import com.example.OnlineSellingApplicationBackend.DTO.FileUploadUtil;
 import com.example.OnlineSellingApplicationBackend.entities.*;
 import com.example.OnlineSellingApplicationBackend.Repositories.*;
 import com.example.OnlineSellingApplicationBackend.entities.Admin;
 import com.example.OnlineSellingApplicationBackend.entities.SuperAdmin;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,8 +39,13 @@ public class SuperAdminService {
     private ClientRepository clientRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private FileStorageService fileStorageService;
     // Ajouter un Admin
+
     public Admin ajouterAdmin(Admin admin) {
+        admin.setMotDePasse(passwordEncoder.encode(admin.getMotDePasse()));
         return adminRepository.save(admin);
     }
     public SuperAdmin ajouterSuperAdmin(SuperAdmin superAdmin) {
@@ -58,18 +68,25 @@ public class SuperAdminService {
         return superAdminRepository.save(superadmin);
     }
     // Modifier un Admin
-    public Admin modifierAdmin(Long adminId, Admin adminDetails) {
-        Optional<Admin> existingAdmin = adminRepository.findById(adminId);
-        if (existingAdmin.isPresent()) {
-            Admin admin = existingAdmin.get();
-            admin.setNom(adminDetails.getNom());
-            admin.setEmail(adminDetails.getEmail());
-            admin.setMotDePasse(adminDetails.getMotDePasse());
-            admin.setProfil(adminDetails.getProfil());
-            return adminRepository.save(admin);
-        } else {
-            throw new RuntimeException("Admin non trouvé !");
-        }
+
+    public Admin modifierAdmin(Long adminId, String nom, String email, String password, MultipartFile profil) {
+        return adminRepository.findById(adminId)
+                .map(admin -> {
+                    admin.setNom(nom);
+                    admin.setEmail(email);
+
+                    if(password != null && !password.isEmpty()) {
+                        admin.setMotDePasse(passwordEncoder.encode(password));
+                    }
+
+                    if(profil != null && !profil.isEmpty()) {
+                        String fileName = fileStorageService.storeFile(profil);
+                        admin.setProfil("/uploads/" + fileName);
+                    }
+
+                    return adminRepository.save(admin);
+                })
+                .orElseThrow(() -> new RuntimeException("Admin not found"));
     }
 
     // Supprimer un Admin
@@ -82,20 +99,37 @@ public class SuperAdminService {
         return adminRepository.findAll();
     }
     //modifier profil SuperAdmin
+    @Transactional
+    public SuperAdmin updateProfile(Long id, SuperAdmin updatedSuperAdmin, MultipartFile file) {
+        SuperAdmin superAdmin = superAdminRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Super Admin not found!"));
 
-    public SuperAdmin modifierProfil(Long id, SuperAdmin updatedSuperAdmin) {
-        Optional<SuperAdmin> superAdminOptional = superAdminRepository.findById(id);
-
-        if (superAdminOptional.isEmpty()) {
-            throw new RuntimeException("Super Admin non trouvé !");
+        if (file != null && !file.isEmpty()) {
+            String fileName = fileStorageService.storeFile(file);
+            superAdmin.setProfil("/uploads/" + fileName);
         }
 
-        SuperAdmin superAdmin = superAdminOptional.get();
         superAdmin.setNom(updatedSuperAdmin.getNom());
         superAdmin.setEmail(updatedSuperAdmin.getEmail());
-        superAdmin.setMotDePasse(updatedSuperAdmin.getMotDePasse());
-        superAdmin.setSuperAdminSpecificField(updatedSuperAdmin.getSuperAdminSpecificField()); // Modifier un champ spécifique
+
+        if (updatedSuperAdmin.getMotDePasse() != null && !updatedSuperAdmin.getMotDePasse().isEmpty()) {
+            superAdmin.setMotDePasse(passwordEncoder.encode(updatedSuperAdmin.getMotDePasse()));
+        }
 
         return superAdminRepository.save(superAdmin);
     }
+    public SuperAdmin getCurrentSuperAdmin() {
+        // Get the email of the currently authenticated user
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Retrieve the SuperAdmin by email
+        return superAdminRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new RuntimeException("Super Admin not found"));
+    }
+
+
+
+
+
+
 }

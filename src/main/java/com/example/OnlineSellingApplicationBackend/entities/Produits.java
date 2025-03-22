@@ -20,7 +20,7 @@ public class Produits {
     private double promotionPartenaire;
     private double promotionParticulier;
     private String selection;
-    private String photo;
+    private Set<String> photo;
     private int quantite;
     private double prix;
     private boolean disponibilite;
@@ -103,11 +103,11 @@ public class Produits {
         this.selection = selection;
     }
 
-    public String getPhoto() {
+    public Set<String> getPhoto() {
         return photo;
     }
 
-    public void setPhoto(String photo) {
+    public void setPhoto(Set<String> photo) {
         this.photo = photo;
     }
 

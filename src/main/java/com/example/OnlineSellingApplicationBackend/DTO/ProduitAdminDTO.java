@@ -1,5 +1,4 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
-
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -17,17 +16,25 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor // ✅ Ajoute un constructeur par défaut
 public class ProduitAdminDTO {
-
     private Long id;
+    private boolean disponibilite ;
     private String nom;
     private String description;
-    private String photo;
+    private Set<String> photo;
     private int quantite;
     private double prix;
     private double promotionPartenaire;
     private double promotionParticulier;
     private Set<Categories> categories;
     private Double averageRating;
+
+    public boolean isDisponibilite() {
+        return disponibilite;
+    }
+
+    public void setDisponibilite(boolean disponibilite) {
+        this.disponibilite = disponibilite;
+    }
 
     public Double getAverageRating() {
         return averageRating;
@@ -37,8 +44,9 @@ public class ProduitAdminDTO {
         this.averageRating = averageRating;
     }
 
-    public ProduitAdminDTO(Long id, String nom, String description, String photo, int quantite, double prix, double promotionPartenaire, double promotionParticulier, Set<Categories> categories, Double averageRating) {
+    public ProduitAdminDTO(Long id, boolean disponibilite , String nom, String description, Set<String> photo, int quantite, double prix, double promotionPartenaire, double promotionParticulier, Set<Categories> categories, Double averageRating) {
         this.id = id;
+        this.disponibilite = disponibilite;
         this.nom = nom;
         this.description = description;
         this.photo = photo;
@@ -82,11 +90,11 @@ public class ProduitAdminDTO {
         this.description = description;
     }
 
-    public String getPhoto() {
+    public Set<String> getPhoto() {
         return photo;
     }
 
-    public void setPhoto(String photo) {
+    public void setPhoto(Set<String> photo) {
         this.photo = photo;
     }
 

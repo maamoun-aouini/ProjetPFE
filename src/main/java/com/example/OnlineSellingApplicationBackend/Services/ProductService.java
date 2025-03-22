@@ -1,5 +1,4 @@
 package com.example.OnlineSellingApplicationBackend.Services;
-
 import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Repositories.CategoriesRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ProduitsRepository;
@@ -9,7 +8,6 @@ import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
 import java.util.stream.Collectors;
 @Service
@@ -24,26 +22,27 @@ public class ProductService {
     private ProduitsRepository produitsRepository;
 
     // Add categories to a product
-    public List<ProduitAdminDTO> getAllProducts() {
-        return produitRepository.findAllWithRatings() // Custom repository method
-                .stream()
-                .map(produit -> {
-                    Double avgRating = calculateAverageRating(produit.getNotes());
-                    return new ProduitAdminDTO(
-                            produit.getId(),
-                            produit.getNom(),
-                            produit.getDescription(),
-                            produit.getPhoto(),
-                            produit.getQuantite(),
-                            produit.getPrix(),
-                            produit.getPromotionPartenaire(),
-                            produit.getPromotionParticulier(),
-                            produit.getCategories(),
-                            avgRating
-                    );
-                })
-                .collect(Collectors.toList());
-    }
+        public List<ProduitAdminDTO> getAllProducts() {
+            return produitRepository.findAllWithRatings() // Custom repository method
+                    .stream()
+                    .map(produit -> {
+                        Double avgRating = calculateAverageRating(produit.getNotes());
+                        return new ProduitAdminDTO(
+                                produit.getId(),
+                                produit.isDisponibilite(),
+                                produit.getNom(),
+                                produit.getDescription(),
+                                produit.getPhoto(),
+                                produit.getQuantite(),
+                                produit.getPrix(),
+                                produit.getPromotionPartenaire(),
+                                produit.getPromotionParticulier(),
+                                produit.getCategories(),
+                                avgRating
+                        );
+                    })
+                    .collect(Collectors.toList());
+        }
 
     private Double calculateAverageRating(Set<Note> notes) {
         if (notes == null || notes.isEmpty()) {
@@ -55,8 +54,8 @@ public class ProductService {
                 .orElse(0.0);
     }
 
-    public ProductUpdateResponse updateProductCategories(Long productId, ProductUpdateRequest request) {
-        ProductUpdateResponse response = new ProductUpdateResponse();
+    public ProductUpdateCategoriesResponse updateProductAndItsCategories(Long productId, ProductCreateUpdateRequest request) {
+        ProductUpdateCategoriesResponse response = new ProductUpdateCategoriesResponse();
         response.setProductId(productId);
 
         try {
@@ -71,7 +70,15 @@ public class ProductService {
 
             Produits product = produitRepository.findById(productId)
                     .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
+            product.setDescription(request.getDescription());
+            product.setNom(request.getNom());
+            product.setPromotionPartenaire(request.getPromotionPartenaire());
+            product.setPromotionParticulier(request.getPromotionParticulier());
+            product.setSelection(request.getSelection());
+            product.setPhoto(request.getPhoto());
+            product.setQuantite(request.getQuantite());
+            product.setPrix(request.getPrix());
+            product.setDisponibilite(request.isDisponibilite());
             // Batch load categories
             List<Categories> categories = categoriesRepository.findAllById(incomingIds);
             if (categories.size() != incomingIds.size()) {
@@ -150,12 +157,10 @@ public class ProductService {
         }
         return response;
     }
-
-    public Produits createProductWithCategories(ProductCreateRequest request) {
+    public Produits createProductWithCategories(ProductCreateUpdateRequest request) {
         // Validate input categories
         Set<Long> incomingCategoryIds = Optional.ofNullable(request.getCategoryIds())
                 .orElse(Collections.emptySet());
-
         // Create and populate product
         Produits product = new Produits();
         product.setNom(request.getNom());

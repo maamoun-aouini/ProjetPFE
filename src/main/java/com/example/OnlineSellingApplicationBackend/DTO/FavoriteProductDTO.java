@@ -1,5 +1,7 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
+import java.util.Set;
+
 public class FavoriteProductDTO {
     private Long clientId;
     private Long produitId;
@@ -8,7 +10,7 @@ public class FavoriteProductDTO {
     private double promotionPartenaire;
     private double promotionParticulier;  //;
     private String selection;
-    private String photo;
+    private Set<String> photo;
     private double prix;
     private boolean disponibilite;
 
@@ -68,11 +70,12 @@ public class FavoriteProductDTO {
         this.selection = selection;
     }
 
-    public String getPhoto() {
+
+    public Set<String> getPhoto() {
         return photo;
     }
 
-    public void setPhoto(String photo) {
+    public void setPhoto(Set<String> photo) {
         this.photo = photo;
     }
 
@@ -92,7 +95,7 @@ public class FavoriteProductDTO {
         this.disponibilite = disponibilite;
     }
 
-    public FavoriteProductDTO(Long clientId, Long produitId, String nom, String description, double promotionPartenaire, double promotionParticulier, String selection, String photo, double prix, boolean disponibilite) {
+    public FavoriteProductDTO(Long clientId, Long produitId, String nom, String description, double promotionPartenaire, double promotionParticulier, String selection, Set<String> photo, double prix, boolean disponibilite) {
         this.clientId = clientId;
         this.produitId = produitId;
         this.nom = nom;

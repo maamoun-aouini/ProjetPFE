@@ -9,22 +9,16 @@ public class ClientInfoResponse {
     private String nom;
     private String email;
     private String tel;
-    private String type ;
+    private String type;
+    private boolean isActif = true;
     private String description;
     private String entrepriseNom; // If client belongs to an entreprise
     private String matriculeFiscale; // If client belongs to an entreprise
     private @Nullable AddressResponse addressResponse;
 
-    public AddressResponse getAddressResponse() {
-        return addressResponse;
-    }
-
-    public void setAddressResponse(AddressResponse addressResponse) {
-        this.addressResponse = addressResponse;
-    }
-
-    public ClientInfoResponse(Long id, String nom, String email, String tel, String type, String description, String entrepriseNom, String matriculeFiscale, AddressResponse addressResponse) {
+    public ClientInfoResponse(Long id, boolean isActif, String nom, String email, String tel, String type, String description, String entrepriseNom, String matriculeFiscale) {
         this.id = id;
+        this.isActif = isActif;
         this.nom = nom;
         this.email = email;
         this.tel = tel;
@@ -32,7 +26,6 @@ public class ClientInfoResponse {
         this.description = description;
         this.entrepriseNom = entrepriseNom;
         this.matriculeFiscale = matriculeFiscale;
-        this.addressResponse = addressResponse;
     }
 
     public ClientInfoResponse(Long id, String nom, String email, String tel, String type, String description, String entrepriseNom, String matriculeFiscale) {
@@ -46,6 +39,7 @@ public class ClientInfoResponse {
         this.matriculeFiscale = matriculeFiscale;
     }
 
+    // Getters and setters
     public Long getId() {
         return id;
     }
@@ -86,6 +80,14 @@ public class ClientInfoResponse {
         this.type = type;
     }
 
+    public boolean isActif() {
+        return isActif;
+    }
+
+    public void setActif(boolean actif) {
+        isActif = actif;
+    }
+
     public String getDescription() {
         return description;
     }
@@ -108,5 +110,13 @@ public class ClientInfoResponse {
 
     public void setMatriculeFiscale(String matriculeFiscale) {
         this.matriculeFiscale = matriculeFiscale;
+    }
+
+    public AddressResponse getAddressResponse() {
+        return addressResponse;
+    }
+
+    public void setAddressResponse(AddressResponse addressResponse) {
+        this.addressResponse = addressResponse;
     }
 }

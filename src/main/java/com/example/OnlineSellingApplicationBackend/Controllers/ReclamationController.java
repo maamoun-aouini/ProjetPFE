@@ -1,5 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 
+import com.example.OnlineSellingApplicationBackend.DTO.FormattedReclamationResponse;
 import com.example.OnlineSellingApplicationBackend.Services.ReclamationService;
 import com.example.OnlineSellingApplicationBackend.entities.Reclamation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,11 +28,16 @@ public class ReclamationController {
      */
     //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
     @GetMapping
-    public ResponseEntity<List<Reclamation>> getAllReclamations() {
-        List<Reclamation> reclamations = reclamationService.getAllReclamations();
+    public ResponseEntity<List<FormattedReclamationResponse>> getAllReclamations() {
+        List<FormattedReclamationResponse> reclamations = reclamationService.getAllReclamations();
         return ResponseEntity.ok(reclamations);
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReclamation(@PathVariable Long id) {
+        reclamationService.deleteReclamation(id);
+        return ResponseEntity.noContent().build();
+    }
     /**
      * Get reclamations by a specific client (Admin only).
      */
@@ -41,4 +47,15 @@ public class ReclamationController {
         List<Reclamation> reclamations = reclamationService.getReclamationsByClient(clientId);
         return ResponseEntity.ok(reclamations);
     }
+    /**
+     * Get a reclamation by its ID.
+     */
+//@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
+    @GetMapping("/{id}")
+    public ResponseEntity<FormattedReclamationResponse> getReclamationById(@PathVariable Long id) {
+        FormattedReclamationResponse response = reclamationService.getReclamationById(id);
+        return ResponseEntity.ok(response);
+    }
+
+
 }

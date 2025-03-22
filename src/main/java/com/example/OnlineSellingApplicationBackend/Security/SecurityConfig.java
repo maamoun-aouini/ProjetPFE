@@ -59,11 +59,12 @@ public class SecurityConfig {
                         // Admin endpoints
 
                         .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/admin/profile").hasAnyAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/packs/**").hasAnyAuthority("ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
 
                         // SuperAdmin endpoints
-                        .requestMatchers("/api/superadmin").permitAll()
-                        //.requestMatchers("/api/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
+                        .requestMatchers("/api/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
+                        .requestMatchers( "/api/superadmin/admins/**").hasAuthority("ROLE_SUPERADMIN")                        //.requestMatchers("/api/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
 
                         // Product endpoints
                         .requestMatchers("/api/Products/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
@@ -84,6 +85,9 @@ public class SecurityConfig {
                         // Fallback: All other requests require authentication
                         .anyRequest().authenticated()
                 )
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -103,7 +107,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:5173")); // Allow frontend origin
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS")); // Allowed HTTP methods
+        configuration.setAllowedMethods(List.of("*")); // Allowed HTTP methods
         configuration.setAllowedHeaders(List.of("*")); // Allow all headers
         configuration.setAllowCredentials(true); // Allow credentials (e.g., cookies)
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

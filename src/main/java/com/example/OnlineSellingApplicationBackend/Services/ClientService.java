@@ -62,23 +62,32 @@ public class ClientService {
     public List<ClientInfoAdmin> getAllClients() {
         return clientRepository.findAll()
                 .stream()
-                .map(client -> new ClientInfoAdmin(
-                        new ClientInfoResponse(
-                                client.getId(),
-                                client.getNom(),
-                                client.getEmail(),
-                                client.getTel(),
-                                client.getType() != null ? client.getType().toString() : "N/A", // Handle null type
-                                client.getDescription(),
-                                Optional.ofNullable(client.getEntreprise())
-                                        .map(Entreprise::getNom)
-                                        .orElse("N/A"),
-                                Optional.ofNullable(client.getEntreprise())
-                                        .map(Entreprise::getMatriculeFiscale)
-                                        .orElse("N/A")
-                        ),
-                        new AddressResponse(client.getAdresse())
-                ))
+                .map(client -> {
+                    ClientInfoResponse clientInfoResponse = new ClientInfoResponse(
+                            client.getId(),
+                            client.isActif(),
+                            client.getNom(),
+                            client.getEmail(),
+                            client.getTel(),
+                            client.getType() != null ? client.getType().toString() : "N/A", // Handle null type
+                            client.getDescription(),
+                            Optional.ofNullable(client.getEntreprise())
+                                    .map(Entreprise::getNom)
+                                    .orElse("N/A"),
+                            Optional.ofNullable(client.getEntreprise())
+                                    .map(Entreprise::getMatriculeFiscale)
+                                    .orElse("N/A")
+                    );
+
+                    // Handle null address
+                    AddressResponse addressResponse = client.getAdresse() != null
+                            ? new AddressResponse(client.getAdresse())
+                            : null;
+
+                    clientInfoResponse.setAddressResponse(addressResponse);
+
+                    return new ClientInfoAdmin(clientInfoResponse, addressResponse);
+                })
                 .collect(Collectors.toList());
     }
     public Client registerClient(ClientRegistrationRequest request) {

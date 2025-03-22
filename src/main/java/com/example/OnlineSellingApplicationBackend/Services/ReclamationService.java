@@ -1,5 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.Services;
 
+import com.example.OnlineSellingApplicationBackend.DTO.FormattedReclamationResponse;
 import com.example.OnlineSellingApplicationBackend.Repositories.ClientRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.CommandeRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ReclamationRepository;
@@ -7,10 +8,12 @@ import com.example.OnlineSellingApplicationBackend.entities.Client;
 import com.example.OnlineSellingApplicationBackend.entities.Commande;
 import com.example.OnlineSellingApplicationBackend.entities.Reclamation;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -57,12 +60,58 @@ public class ReclamationService {
 
         return ResponseEntity.ok(savedReclamation);
     }
-    public List<Reclamation> getAllReclamations() {
-        return reclamationRepository.findAll();
+
+    public List<FormattedReclamationResponse> getAllReclamations() {
+        List<Reclamation> reclamations = reclamationRepository.findAll();
+        List<FormattedReclamationResponse> formattedReclamations = new ArrayList<>();
+
+        for (Reclamation reclamation : reclamations) {
+            String clientName = reclamation.getClient().getNom();
+            String title = reclamation.getTitle(); // Use title field
+            String description = reclamation.getDescription(); // Use description field
+            String date = reclamation.getDateReclamation() != null ? reclamation.getDateReclamation().toString() : "Date non disponible"; // Ensure proper date conversion
+            Long commandeId = reclamation.getCommande() != null ? reclamation.getCommande().getIdCommande() : null;
+
+            // Créer l'objet DTO avec la description incluse
+            FormattedReclamationResponse response = new FormattedReclamationResponse(
+                    clientName,
+                    title,
+                    description,
+                    date,
+                    commandeId,
+                    reclamation.getIdReclamation() // Add the ID
+            );
+            formattedReclamations.add(response);
+        }
+
+        return formattedReclamations;
     }
 
     public List<Reclamation> getReclamationsByClient(Long clientId) {
         return reclamationRepository.findAllByClientId(clientId);
     }
-}
 
+    public void deleteReclamation(Long id) {
+        // Check if the reclamation exists before trying to delete
+        if (!reclamationRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Reclamation not found with id: " + id);
+        }
+
+        reclamationRepository.deleteById(id);
+
+    }
+
+    public FormattedReclamationResponse getReclamationById(Long id) {
+        Reclamation reclamation = reclamationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reclamation not found with id: " + id));
+
+        return new FormattedReclamationResponse(
+                reclamation.getClient().getNom(),
+                reclamation.getTitle(),
+                reclamation.getDescription(),
+                reclamation.getDateReclamation() != null ? reclamation.getDateReclamation().toString() : "Date non disponible",
+                reclamation.getCommande() != null ? reclamation.getCommande().getIdCommande() : null,
+                reclamation.getIdReclamation() // Add the ID
+        );
+    }
+}

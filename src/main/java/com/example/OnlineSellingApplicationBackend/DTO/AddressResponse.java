@@ -16,16 +16,30 @@ public class AddressResponse {
 
     // Constructor from Entity
     public AddressResponse(Adresse adresse) {
-        this.id = adresse.getId();
-        this.rue = adresse.getRue();
-        this.numero = adresse.getNumero();
-        this.indication = adresse.getIndication();
+        if (adresse == null) {
+            this.id = null;
+            this.rue = null;
+            this.numero = null;
+            this.indication = null;
+            this.ville = null;
+            this.pays = null;
+        } else {
+            this.id = adresse.getId();
+            this.rue = adresse.getRue();
+            this.numero = adresse.getNumero();
+            this.indication = adresse.getIndication();
 
-        // Add null checks for ville and pays
-        if (adresse.getVille() != null) {
-            this.ville = adresse.getVille().getNom();
-            if (adresse.getVille().getPays() != null) {
-                this.pays = adresse.getVille().getPays().getNom();
+            // Add null checks for ville and pays
+            if (adresse.getVille() != null) {
+                this.ville = adresse.getVille().getNom();
+                if (adresse.getVille().getPays() != null) {
+                    this.pays = adresse.getVille().getPays().getNom();
+                } else {
+                    this.pays = null;
+                }
+            } else {
+                this.ville = null;
+                this.pays = null;
             }
         }
     }
