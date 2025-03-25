@@ -9,27 +9,52 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
-@IdClass(ClePaquet.class)
+@IdClass(ClePaquet.class)  // Keep this annotation
 public class LignePaquet {
+
+    // These fields must match exactly with ClePaquet fields
     @Id
+    @Column(name = "paquet_id")
+    private Long paquetId;
+
+    @Id
+    @Column(name = "produit_id")
+    private Long produitId;
+
     @ManyToOne
-    @JoinColumn(name = "paquet_id", referencedColumnName = "id")
+    @MapsId("paquetId")  // This references the field above
+    @JoinColumn(name = "paquet_id", insertable = false, updatable = false)
     private Paquet paquet;
 
-    @Id
     @ManyToOne
-    @JoinColumn(name = "produit_id", referencedColumnName = "id")
+    @MapsId("produitId")  // This references the field above
+    @JoinColumn(name = "produit_id", insertable = false, updatable = false)
     private Produits produit;
-
 
     private int quantite;
 
-    public int getQuantite() {
-        return quantite;
+    public Long getPaquetId() {
+        return paquetId;
     }
 
-    public void setQuantite(int quantite) {
-        this.quantite = quantite;
+    public void setPaquetId(Long paquetId) {
+        this.paquetId = paquetId;
+    }
+
+    public Long getProduitId() {
+        return produitId;
+    }
+
+    public void setProduitId(Long produitId) {
+        this.produitId = produitId;
+    }
+
+    public Paquet getPaquet() {
+        return paquet;
+    }
+
+    public void setPaquet(Paquet paquet) {
+        this.paquet = paquet;
     }
 
     public Produits getProduit() {
@@ -40,11 +65,12 @@ public class LignePaquet {
         this.produit = produit;
     }
 
-    public Paquet getPaquet() {
-        return paquet;
+    public int getQuantite() {
+        return quantite;
     }
 
-    public void setPaquet(Paquet paquet) {
-        this.paquet = paquet;
+    public void setQuantite(int quantite) {
+        this.quantite = quantite;
     }
+// Getters and setters
 }

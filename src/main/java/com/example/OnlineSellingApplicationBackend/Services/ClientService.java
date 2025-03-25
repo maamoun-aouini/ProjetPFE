@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Exeptions.*;
 import com.example.OnlineSellingApplicationBackend.Security.SecurityConfig;
+
+import java.time.LocalDateTime;
 import java.util.Date;
 
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
@@ -557,4 +559,49 @@ public class ClientService {
         return noteRepository.findByClientIdAndProduitId(clientId, productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Rating not found"));
     }
+    // UserService.java
+    public List<UserGrowthDTO> getUserGrowthData() {
+        return clientRepository.findMonthlyUserGrowth().stream()
+                .map(result -> new UserGrowthDTO(
+                        ((String) result[0]), // Month in "MMM" format
+                        ((Number) result[1]).intValue()
+                ))
+                .collect(Collectors.toList());
+    }
+    // UserService.java
+    public List<ClientTypeDTO> getClientTypeDistribution() {
+        return clientRepository.countUsersByClientType().stream()
+                .map(result -> new ClientTypeDTO(
+                        ((String) result[0]),
+                        ((Number) result[1]).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
+    public Map<String, Object> getUsersStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Total Users
+        long totalUsers = clientRepository.count();
+        stats.put("totalUsers", totalUsers);
+
+        // If using option a:
+        long newUsersToday = clientRepository.countByRegistrationDate(LocalDateTime.now());
+        stats.put("newUsersToday", newUsersToday);
+
+        // Active Users (utilise LocalDateTime)
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        long activeUsers = clientRepository.countActiveUsers(thirtyDaysAgo);
+        stats.put("activeUsers", activeUsers);
+
+        // Calcul du taux de désabonnement
+        double churnRate = 0.0;
+        if (totalUsers > 0) {
+            long churnedUsers = totalUsers - activeUsers;
+            churnRate = (churnedUsers * 100.0) / totalUsers;
+        }
+        stats.put("churnRate", String.format("%.1f%%", churnRate));
+
+        return stats;
+    }
 }
+

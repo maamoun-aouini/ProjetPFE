@@ -5,7 +5,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +21,22 @@ public class Paquet {
 
     private String nom;
     private double prix;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "pack_photos", joinColumns = @JoinColumn(name = "pack_id"))
+    @Column(name = "photo_path")
+    private Set<String> photos = new HashSet<>();
+
+    public Set<String> getPhotos() {
+        return photos;
+    }
+    public List<Produits> getProduits() {
+        return lignePaquets.stream()
+                .map(LignePaquet::getProduit)
+                .collect(Collectors.toList());
+    }
+    public void setPhotos(Set<String> photos) {
+        this.photos = photos;
+    }
 
     @OneToMany(mappedBy = "paquet")
     private Set<LignePaquet> lignePaquets;

@@ -1,54 +1,56 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
-
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public class PackRequest {
-    private Long id;
-    private String nomPaquet;
-    private List<Long> produitIds;
-    private List<Integer> quantites;
-    private double prixPack;  // Prix réduit appliqué sur le pack
+    private String nom;
+    private double prix;
+    private List<Long> productIds;
+    private List<Integer> quantities;
+    @JsonIgnore // This prevents it from being included in JSON parsing
+    private List<MultipartFile> photos;
 
-    public Long getId() {
-        return id;
+    // Getters and Setters
+    public String getNom() {
+        return nom;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setNom(String nom) {
+        this.nom = nom;
     }
 
-    public String getNomPaquet() {
-        return nomPaquet;
+    public double getPrix() {
+        return prix;
     }
 
-    public void setNomPaquet(String nomPaquet) {
-        this.nomPaquet = nomPaquet;
+    public void setPrix(double prix) {
+        this.prix = prix;
     }
 
-    public List<Long> getProduitIds() {
-        return produitIds;
+    public List<Long> getProductIds() {
+        return productIds;
     }
 
-    public void setProduitIds(List<Long> produitIds) {
-        this.produitIds = produitIds;
+    public void setProductIds(List<Long> productIds) {
+        this.productIds = productIds;
     }
 
-    public List<Integer> getQuantites() {
-        return quantites;
+    public List<Integer> getQuantities() {
+        return quantities;
     }
 
-    public void setQuantites(List<Integer> quantites) {
-        this.quantites = quantites;
+    public void setQuantities(List<Integer> quantities) {
+        this.quantities = quantities;
     }
 
-    public double getPrixPack() {
-        return prixPack;
+    public List<MultipartFile> getPhotos() {
+        return photos;
     }
 
-    public void setPrixPack(double prixPack) {
-        this.prixPack = prixPack;
+    public void setPhotos(List<MultipartFile> photos) {
+        this.photos = photos;
     }
 }

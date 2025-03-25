@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface LignePaquetRepository extends JpaRepository<LignePaquet, ClePaquet> {
     List<LignePaquet> findByPaquetId(Long paquetId);
+
 }

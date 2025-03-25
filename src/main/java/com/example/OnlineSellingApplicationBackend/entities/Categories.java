@@ -27,10 +27,11 @@ public class Categories {
 
     @NotBlank(message = "Category description is required")
     private String description;
-
-    @ElementCollection
-    private Set<String> photo = new HashSet<>(); // Initialize to avoid null issues
-
+    // Change the ElementCollection to load eagerly
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "category_photos", joinColumns = @JoinColumn(name = "category_id"))
+    @Column(name = "photo_path")
+    private Set<String> photo = new HashSet<>();
     @ManyToOne
     @JoinColumn(name = "parent_id")
     @JsonBackReference // Avoids recursive serialization

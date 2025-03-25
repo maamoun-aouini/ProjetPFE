@@ -50,22 +50,21 @@ public class SuperAdminController {
             @RequestParam("password") String password,
             @RequestParam(value = "profil", required = false) MultipartFile profil) {
 
-        // Handle file upload
-        String profileImagePath = null;
-        if (profil != null && !profil.isEmpty()) {
-            profileImagePath = fileStorageService.storeFile(profil); // Implement file storage logic
-        }
-
-        // Create and save Admin
+        // Create Admin object
         Admin admin = new Admin();
         admin.setNom(name);
         admin.setEmail(email);
-        admin.setMotDePasse(passwordEncoder.encode(password));
-        admin.setProfil(profileImagePath);
+        admin.setMotDePasse(password); // Don't encode here, let the service do it
 
+        // Handle file upload if provided
+        if (profil != null && !profil.isEmpty()) {
+            String profilePath = fileStorageService.CreateFile(profil);
+            admin.setProfil(profilePath);
+        }
+
+        // Use the service to save admin (which will encode the password)
         Admin savedAdmin = adminRepository.save(admin);
         return ResponseEntity.ok(savedAdmin);
-
     }
     @PutMapping(value = "/admins/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Admin> updateAdmin(
@@ -126,4 +125,9 @@ public class SuperAdminController {
         SuperAdmin result = superAdminService.updateProfile(superAdmin.getId(), updatedSuperAdmin, file);
         return ResponseEntity.ok(result);
     }
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<Map<String, Object>> getDashboardStats() {
+        return ResponseEntity.ok(superAdminService.getDashboardStats());
+    }
+
 }

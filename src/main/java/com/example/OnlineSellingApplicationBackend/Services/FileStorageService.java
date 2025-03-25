@@ -37,4 +37,27 @@ public class FileStorageService {
             throw new RuntimeException("Could not store file " + fileName, ex);
         }
     }
+    // In your FileStorageService class
+    public String CreateFile(MultipartFile file) {
+        try {
+            // Generate a unique filename to avoid conflicts
+            String originalFilename = file.getOriginalFilename();
+            String fileName = System.currentTimeMillis() + "_" + originalFilename;
+
+            // Create uploads directory if it doesn't exist
+            Path uploadDir = Paths.get("uploads");
+            if (!Files.exists(uploadDir)) {
+                Files.createDirectories(uploadDir);
+            }
+
+            // Copy the file to the target location
+            Path targetLocation = uploadDir.resolve(fileName);
+            Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+
+            // Return the path that will be stored in the database
+            return "/uploads/" + fileName;
+        } catch (IOException ex) {
+            throw new RuntimeException("Could not store file " + file.getOriginalFilename(), ex);
+        }
+    }
 }

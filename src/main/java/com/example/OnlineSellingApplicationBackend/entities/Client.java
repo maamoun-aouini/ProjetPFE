@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
@@ -32,6 +34,27 @@ public class Client extends Utilisateur {
     private Set<Commande> commandes;
     @OneToMany(mappedBy = "client")
     private Set<Reclamation> reclamations;
+
+    // ✅ New Field: Registration Date
+    @Column(name = "registration_date", nullable = false, updatable = false)
+    private LocalDateTime registrationDate;
+
+    // ✅ Automatically Set Registration Date Before Insert
+    @PrePersist
+    protected void onCreate() {
+        this.registrationDate = LocalDateTime.now();
+    }
+    @Column(name = "last_login")
+    private LocalDateTime lastLogin;
+
+    // Add getter and setter
+    public LocalDateTime getLastLogin() {
+        return lastLogin;
+    }
+
+    public void setLastLogin(LocalDateTime lastLogin) {
+        this.lastLogin = lastLogin;
+    }
     // Méthode pour vérifier si le client a effectué au moins une commande
 
     public boolean aPasseCommande() {

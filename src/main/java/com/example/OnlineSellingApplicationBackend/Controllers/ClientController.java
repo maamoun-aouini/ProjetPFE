@@ -221,4 +221,18 @@ public class ClientController {
         Note note = clientService.getRating(clientId, productId);
         return ResponseEntity.ok(note);
     }
+    // UserController.java
+    @GetMapping("/stats/growth")
+    public ResponseEntity<List<UserGrowthDTO>> getUserGrowth() {
+        return ResponseEntity.ok(clientService.getUserGrowthData());
+    }
+    // UserController.java
+    @GetMapping("stats/client-types")
+    public ResponseEntity<List<ClientTypeDTO>> getClientTypeDistribution() {
+        return ResponseEntity.ok(clientService.getClientTypeDistribution());
+    }
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getUsersStats() {
+        return ResponseEntity.ok(clientService.getUsersStats());
+    }
 }

@@ -15,7 +15,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -29,6 +31,8 @@ public class SuperAdminService {
     @Autowired
     private FavorisRepository favorisRepository;
 
+    @Autowired
+    private ProduitsRepository produitsRepository;
     @Autowired
     private SuperAdminRepository superAdminRepository;
 
@@ -45,8 +49,32 @@ public class SuperAdminService {
     // Ajouter un Admin
 
     public Admin ajouterAdmin(Admin admin) {
-        admin.setMotDePasse(passwordEncoder.encode(admin.getMotDePasse()));
-        return adminRepository.save(admin);
+        // Check if email exists in Client table
+        Optional<Client> client = clientRepository.findByEmail(admin.getEmail());
+        if (client.isEmpty()) {
+            // Check if email exists in SuperAdmin table
+            Optional<SuperAdmin> superAdmin = superAdminRepository.findByEmail(admin.getEmail());
+            if (superAdmin.isPresent()) {
+                throw new RuntimeException("The email you are using is registered in the superAdmin table");
+            }
+
+            // Check if email exists in Admin table (renamed variable to avoid conflict)
+            Optional<Admin> existingAdmin = adminRepository.findByEmail(admin.getEmail());
+            if (existingAdmin.isPresent()) {
+                throw new RuntimeException("The email you are using is registered in the admin table");
+            }
+        } else {
+            throw new RuntimeException("The email you are using is registered in the client table");
+        }
+
+        // Create new Admin with different variable name (avoiding parameter conflict)
+        Admin newAdmin = new Admin();
+        newAdmin.setProfil(admin.getProfil());
+        newAdmin.setNom(admin.getNom());
+        newAdmin.setEmail(admin.getEmail());
+        newAdmin.setMotDePasse(passwordEncoder.encode(admin.getMotDePasse()));
+
+        return adminRepository.save(newAdmin);
     }
     public SuperAdmin ajouterSuperAdmin(SuperAdmin superAdmin) {
         Optional<Client> client = clientRepository.findByEmail(superAdmin.getEmail());
@@ -126,6 +154,31 @@ public class SuperAdminService {
         return superAdminRepository.findByEmail(currentEmail)
                 .orElseThrow(() -> new RuntimeException("Super Admin not found"));
     }
+
+    public Map<String, Object> getDashboardStats() {
+        Map<String, Object> stats = new HashMap<>();
+
+        // Récupération des vraies valeurs de la base
+        Long totalUsers = clientRepository.count();
+        Long totalOrders = commandeRepository.count();
+        Long totalProducts = produitsRepository.count();
+
+        // Récupération du revenu total (si c’est stocké dans une table "revenues")
+        Double totalRevenue = commandeRepository.getTotalRevenue();
+
+
+
+        // Mettre les valeurs dans la réponse
+        stats.put("revenue", totalRevenue);
+        stats.put("users", totalUsers);
+        stats.put("orders", totalOrders);
+        stats.put("totalProducts", totalProducts);
+
+
+
+        return stats;
+    }
+
 
 
 

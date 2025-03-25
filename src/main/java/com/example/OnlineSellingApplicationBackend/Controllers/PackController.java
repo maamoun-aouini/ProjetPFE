@@ -1,41 +1,82 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
+
+import com.example.OnlineSellingApplicationBackend.DTO.PackRequest;
 import com.example.OnlineSellingApplicationBackend.Services.PackService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 @RestController
 @RequestMapping("/api/packs")
 public class PackController {
 
-    @Autowired
-    private PackService packService;
+    private final PackService packService;
 
-    // Get all packs
-    @GetMapping
-    public ResponseEntity<List<Map<String, Object>>> getAllPacks() {
-        List<Map<String, Object>> packs = packService.getAllPacks();
-        return ResponseEntity.ok(packs);
+    @Autowired
+    public PackController(PackService packService) {
+        this.packService = packService;
     }
 
-    // Get single pack by ID
-    @GetMapping("/{packId}")
-    public ResponseEntity<?> getPackById(@PathVariable Long packId) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createPack(
+            @RequestPart("pack") String packJson,
+            @RequestPart(value = "photos", required = false) List<MultipartFile> photos) {
+
         try {
-            Map<String, Object> pack = packService.getPackById(packId);
-            return ResponseEntity.ok(pack);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(404).body(Map.of(
-                    "status", "error",
-                    "message", ex.getMessage()
-            ));
+            PackRequest packRequest = new ObjectMapper().readValue(packJson, PackRequest.class);
+            packRequest.setPhotos(photos);
+            return ResponseEntity.ok(packService.createPack(packRequest));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> updatePack(
+            @PathVariable Long id,
+            @RequestPart("pack") String packJson,
+            @RequestPart(value = "photos", required = false) List<MultipartFile> photos) {
+
+        try {
+            PackRequest packRequest = new ObjectMapper().readValue(packJson, PackRequest.class);
+            packRequest.setPhotos(photos);
+            return ResponseEntity.ok(packService.updatePack(id, packRequest));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getAllPacks() {
+        try {
+            return ResponseEntity.ok(packService.getAllPacks());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getPackById(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(packService.getPackById(id));
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletePack(@PathVariable Long id) {
+        try {
+            packService.deletePack(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

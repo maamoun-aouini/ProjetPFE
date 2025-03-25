@@ -28,4 +28,11 @@ public interface ProduitsRepository extends JpaRepository<Produits, Long> {
 
     @Query("SELECT p FROM Produits p LEFT JOIN FETCH p.notes")
     List<Produits> findAllWithRatings();
+
+    @Query("SELECT COUNT(p) FROM Produits p")
+    long countTotalProducts();
+
+    @Query("SELECT COUNT(p) FROM Produits p WHERE p.quantite < 10")
+    long countLowStockProducts();
+
 }

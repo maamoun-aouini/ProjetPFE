@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.Query;
 
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 @Repository
@@ -28,6 +29,42 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     List<Client> findClientsByAdresseId(@Param("adresseId") Long adresseId, @Param("clientId") Long clientId);
     @Query("SELECT c FROM Client c WHERE c.id = :ClientId ")
     List<Client> findClientsById(@Param("ClientId") Long ClientId);
+    // UserRepository.java
+    @Query(value = """
+                SELECT 
+                    TO_CHAR(registration_date, 'Mon') AS month, 
+                    COUNT(*) AS user_count
+                FROM Client
+                WHERE registration_date >= CURRENT_DATE - INTERVAL '5 months'
+                GROUP BY TO_CHAR(registration_date, 'Mon'), DATE_TRUNC('month', registration_date)
+                ORDER BY DATE_TRUNC('month', registration_date)
+            """, nativeQuery = true)
+    List<Object[]> findMonthlyUserGrowth();
+
+    // UserRepository.java
+    @Query(value = """
+                SELECT 
+                    CASE 
+                        WHEN type = 'Partenaire' THEN 'Partenaire' 
+                        ELSE 'Particulier' 
+                    END AS client_type,
+                    COUNT(*) AS count
+                FROM Client
+                GROUP BY type
+            """, nativeQuery = true)
+    List<Object[]> countUsersByClientType();
+
+    @Query(value = """
+        SELECT COUNT(*) 
+        FROM client 
+        WHERE DATE(registration_date) = DATE(:date)
+        """, nativeQuery = true)
+    long countByRegistrationDate(@Param("date") LocalDateTime date);
+    @Query("SELECT COUNT(c) FROM Client c WHERE c.lastLogin >= :date")
+    long countActiveUsers(@Param("date") LocalDateTime date);
 }
+
+
+
 
 

@@ -3,6 +3,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Fetch;
+import org.hibernate.annotations.FetchMode;
+
 import java.util.Date;
 import java.util.List;
 @AllArgsConstructor
@@ -15,6 +18,8 @@ public class Commande {
     private Long idCommande;
 
     private Date dateCommande;
+    private Double total;
+
 
     @Enumerated(EnumType.STRING)
     private EtatCommande etat;
@@ -37,6 +42,7 @@ public class Commande {
     private TypeCommande type;
 
     @OneToMany(mappedBy = "commande")
+    @Fetch(FetchMode.SUBSELECT)
     private List<LigneCommandPack> ligneCommandePack ;
 
     public List<LigneCommandPack> getLigneCommandePack() {
@@ -108,5 +114,13 @@ public class Commande {
 
     public void setPaiement(Paiement paiement) {
         this.paiement = paiement;
+    }
+
+    public Double getTotal() {
+        return total;
+    }
+
+    public void setTotal(Double total) {
+        this.total = total;
     }
 }

@@ -1,8 +1,5 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
-import com.example.OnlineSellingApplicationBackend.DTO.ProductCreateUpdateRequest;
-import com.example.OnlineSellingApplicationBackend.DTO.ProductUpdateCategoriesRequest;
-import com.example.OnlineSellingApplicationBackend.DTO.ProductUpdateCategoriesResponse;
-import com.example.OnlineSellingApplicationBackend.DTO.ProduitAdminDTO;
+import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Services.ProductService;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,4 +44,21 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request: " + ex.getMessage());
         }
     }
+    @GetMapping("/distribution")
+    public ResponseEntity<List<CategoryDistributionDTO>> getCategoryDistribution() {
+        List<CategoryDistributionDTO> distribution = productService.getCategoryDistribution();
+        return ResponseEntity.ok(distribution);
+    }
+    @GetMapping("/stats")
+    public ResponseEntity<ProductStatsDTO> getProductStats() {
+        ProductStatsDTO stats = productService.getProductStats();
+        return ResponseEntity.ok(stats);
+    }
+    @GetMapping("/sales")
+    public ResponseEntity<List<SalesDataDTO>> getSalesData(
+            @RequestParam String range,
+            @RequestParam(required = false) String timezone) {
+        return ResponseEntity.ok(productService.getSalesData(range));
+    }
 }
+

@@ -1,6 +1,7 @@
 package com.example.OnlineSellingApplicationBackend.Services;
 import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Repositories.CategoriesRepository;
+import com.example.OnlineSellingApplicationBackend.Repositories.CommandeRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ProduitsRepository;
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
 import com.example.OnlineSellingApplicationBackend.entities.Note;
@@ -8,6 +9,9 @@ import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
 @Service
@@ -20,6 +24,8 @@ public class ProductService {
 
     @Autowired
     private ProduitsRepository produitsRepository;
+    @Autowired
+    private CommandeRepository commandeRepository;
 
     // Add categories to a product
         public List<ProduitAdminDTO> getAllProducts() {
@@ -229,4 +235,56 @@ public class ProductService {
         return produitRepository.save(product);
     }
 
+    public List<CategoryDistributionDTO> getCategoryDistribution() {
+        List<Object[]> results = categoriesRepository.findCategoryProductCounts();
+        return results.stream()
+                .map(result -> new CategoryDistributionDTO(
+                        (String) result[0],
+                        ((Number) result[1]).longValue()
+                ))
+                .collect(Collectors.toList());
+    }
+    public ProductStatsDTO getProductStats() {
+        ProductStatsDTO stats = new ProductStatsDTO();
+
+        stats.setTotalProducts(produitRepository.countTotalProducts());
+        stats.setLowStockCount(produitRepository.countLowStockProducts());
+
+
+        Double totalRevenue = commandeRepository.getTotalRevenue();
+        stats.setTotalRevenue(totalRevenue != null ? totalRevenue : 0.0);
+
+        return stats;
+    }
+    public List<SalesDataDTO> getSalesData(String range) {
+        ZoneId zone = ZoneId.of("Europe/Paris");
+        LocalDateTime now = LocalDateTime.now(zone);
+        Date endDate = Date.from(now.atZone(zone).toInstant());
+
+        // Ajustement en fonction de la plage
+        LocalDateTime startDateTime = now;
+        String groupBy = "MONTH";
+
+        if (range.contains("Year")) {
+            startDateTime = now.withDayOfYear(1);
+        } else if (range.contains("6 Months")) {
+            startDateTime = now.minusMonths(6);
+        } else if (range.contains("Month")) {
+            startDateTime = now.minusMonths(1);
+        }
+
+        Date startDate = Date.from(startDateTime.atZone(zone).toInstant());
+
+        return commandeRepository.getSalesData(startDate, endDate, groupBy)
+                .stream()
+                .map(result -> {
+                    SalesDataDTO dto = new SalesDataDTO();
+                    dto.setPeriod((String) result[0]);
+                    dto.setTotal((Double) result[1]);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+
 }
+

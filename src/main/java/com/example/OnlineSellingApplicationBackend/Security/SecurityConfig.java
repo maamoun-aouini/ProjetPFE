@@ -43,10 +43,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/clients/all").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN") //hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/auth/**").permitAll()
-
+                        .requestMatchers("/uploads/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         // Client endpoints
+                        .requestMatchers("/api/clients/stats/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/clients/{clientId}").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")// All other client endpoints require authentication
-
                         .requestMatchers("/api/clients/register").permitAll() // Registration is public
                         .requestMatchers("/api/clients/products").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/categories/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
@@ -63,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/packs/**").hasAnyAuthority("ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
 
                         // SuperAdmin endpoints
+                        .requestMatchers( "/api/superadmin/dashboard-stats").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
                         .requestMatchers( "/api/superadmin/admins/**").hasAuthority("ROLE_SUPERADMIN")                        //.requestMatchers("/api/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
 
@@ -70,6 +72,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/Products/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
 
                         // Commande endpoints
+                        .requestMatchers("/api/commandes/orders/all").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/commandes/{orderId}/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/commandes/{clientId}/Pack").hasAuthority("ROLE_USERPARTNER")
                         .requestMatchers("/api/commandes/{clientId}").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/commandes/**").authenticated()
