@@ -19,6 +19,28 @@ public class Reclamation {
 
     private String description;
     private String title;
+    @Enumerated(EnumType.STRING)
+    private StatusReclamation status = StatusReclamation.EnAttente;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TypeReclamation type;
+
+    public StatusReclamation getStatus() {
+        return status;
+    }
+
+    public void setStatus(StatusReclamation status) {
+        this.status = status;
+    }
+
+    public TypeReclamation getType() {
+        return type;
+    }
+
+    public void setType(TypeReclamation type) {
+        this.type = type;
+    }
 
     // Correct the typo here (DateReclamtion -> dateReclamation)
     private Date dateReclamation;

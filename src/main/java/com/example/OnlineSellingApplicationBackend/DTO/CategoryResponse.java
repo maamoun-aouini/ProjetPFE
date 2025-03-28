@@ -4,7 +4,7 @@ import java.util.List;
 
 public record CategoryResponse(
         Long id,
-        String name,
+        String nom,
         String description,
         List<String> photos,
         Long parentId,

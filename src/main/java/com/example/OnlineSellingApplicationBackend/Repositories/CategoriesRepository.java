@@ -40,4 +40,6 @@ public interface CategoriesRepository extends JpaRepository<Categories, Long> {
     )
     List<Object[]> findCategoryProductCounts();
 
+    List<Categories> findByParentId(Long parentId);
+
 }

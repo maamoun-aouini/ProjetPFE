@@ -235,4 +235,8 @@ public class ClientController {
     public ResponseEntity<Map<String, Object>> getUsersStats() {
         return ResponseEntity.ok(clientService.getUsersStats());
     }
+    @GetMapping("/recent")
+    public ResponseEntity<List<ClientInfoAdmin>> getRecentClients() {
+        return ResponseEntity.ok(clientService.getRecentClients());
+    }
 }

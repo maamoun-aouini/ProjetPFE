@@ -2,10 +2,15 @@ package com.example.OnlineSellingApplicationBackend.Services;
 
 import com.example.OnlineSellingApplicationBackend.DTO.CategoryResponse;
 import com.example.OnlineSellingApplicationBackend.DTO.updateCategoryParent;
+import com.example.OnlineSellingApplicationBackend.DTO.ProduitCatDTO;
+
 import com.example.OnlineSellingApplicationBackend.Repositories.CategoriesRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ProduitsRepository;
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,7 +25,8 @@ public class CategoriesService {
 
     @Autowired
     private CategoriesRepository categoriesRepository;
-
+    @PersistenceContext
+    private EntityManager entityManager;
     @Autowired
     private ProduitsRepository produitsRepository;
 
@@ -35,65 +41,98 @@ public class CategoriesService {
     }
 
     @Transactional
-    public void deleteCategory(Long id, boolean deleteProducts, boolean removeFromProducts) {
+    public void deleteCategory(Long id, boolean deleteSubCategories) {
         Categories category = categoriesRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Category not found"));
+        removeCategoryAssociationsAndPhotos(category.getId());
+        if (deleteSubCategories) {
+            deleteSubcategoriesRecursively(category);
+        } else {
+            // Réassignation explicite des sous-catégories
+            Categories newParent = category.getParent();
+            List<Categories> subCategories = new ArrayList<>(category.getSubCategories());
 
-        // First, remove all references from produit_categorie table
-        Set<Produits> products = category.getProduits();
-
-        // Remove category from all products (this will handle the produit_categorie entries)
-        for (Produits product : products) {
-            product.getCategories().remove(category);
-            produitsRepository.save(product);
-        }
-
-        // Then handle the products based on flags
-        if (!products.isEmpty()) {
-            if (deleteProducts) {
-                // Delete the products
-                produitsRepository.deleteAll(products);
-            } else if (!removeFromProducts) {
-                // If neither flag is true and there are products, throw exception
-                throw new RuntimeException("Category has products. Please specify action (deleteProducts or removeFromProducts)");
+            for (Categories sub : subCategories) {
+                sub.setParent(newParent);
+                categoriesRepository.save(sub);
             }
-            // If removeFromProducts is true, we've already removed the category from products
+            category.getSubCategories().clear(); // Vider la liste avant suppression
+            categoriesRepository.save(category);
         }
 
-        // Handle subcategories
-        if (!category.getSubCategories().isEmpty()) {
-            if (category.getParent() != null) {
-                // Move subcategories to parent category
-                for (Categories subCategory : category.getSubCategories()) {
-                    subCategory.setParent(category.getParent());
-                    categoriesRepository.save(subCategory);
-                }
-            } else {
-                throw new RuntimeException("Cannot delete category with subcategories");
-            }
-        }
-
-        // Finally delete the category
+        // Suppression finale de la catégorie
         categoriesRepository.delete(category);
+
     }
+
+    private void reassignSubcategories(Categories category) {
+        Categories parentCategory = category.getParent();
+        List<Categories> subCategories = new ArrayList<>(category.getSubCategories());
+
+        for (Categories subCategory : subCategories) {
+            subCategory.setParent(parentCategory);
+            categoriesRepository.save(subCategory);
+            category.getSubCategories().remove(subCategory); // Retirer de la liste
+        }
+
+        categoriesRepository.save(category); // Sauvegarder les changements
+        entityManager.flush();
+    }
+
+    private void deleteSubcategoriesRecursively(Categories category) {
+        // Create a copy to avoid concurrent modification
+        List<Categories> subCategories = new ArrayList<>(category.getSubCategories());
+
+        for (Categories subCategory : subCategories) {
+            // Recursively delete nested subcategories
+            deleteSubcategoriesRecursively(subCategory);
+
+            // Remove associations
+            removeCategoryAssociationsAndPhotos(subCategory.getId());
+
+            // Delete subcategory
+            categoriesRepository.delete(subCategory);
+        }
+    }
+
+    private void removeCategoryAssociationsAndPhotos(Long categoryId) {
+        // Remove product associations
+        entityManager.createNativeQuery("DELETE FROM produit_categorie WHERE categorie_id = :categoryId")
+                .setParameter("categoryId", categoryId)
+                .executeUpdate();
+
+        // Remove photos
+        entityManager.createNativeQuery("DELETE FROM category_photos WHERE category_id = :categoryId")
+                .setParameter("categoryId", categoryId)
+                .executeUpdate();
+    }
+
+
     public Categories modiferCategory(Long id, updateCategoryParent newCategory) {
         Categories category = categoriesRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));
 
+        // Mise à jour conditionnelle du nom
         if (newCategory.getName() != null) {
             category.setNom(newCategory.getName());
         }
+
+        // Mise à jour conditionnelle de la description
         if (newCategory.getDescription() != null) {
             category.setDescription(newCategory.getDescription());
         }
 
+        // Gestion explicite du parent
         if (newCategory.getParentId() != null) {
             Categories parentCategory = categoriesRepository.findById(newCategory.getParentId())
                     .orElseThrow(() -> new RuntimeException("Parent Category not found"));
             category.setParent(parentCategory);
+        } else {
+            category.setParent(null); // Suppression du parent existant
         }
 
-        if (newCategory.getPhoto() != null) {
+        // Mise à jour des images
+        if (newCategory.getPhoto() != null && !newCategory.getPhoto().isEmpty()) {
             category.setPhoto(newCategory.getPhoto());
         }
 
@@ -108,4 +147,20 @@ public class CategoriesService {
     public List<Categories> getCategoriesWithSubCategories() {
         return categoriesRepository.findAllRootCategoriesWithSubs();
     }
+    public List<ProduitCatDTO> findProductsByCategoryId(Long categoryId) {
+        List<Produits> produits = produitsRepository.findByCategoriesId(categoryId);
+
+        return produits.stream()
+                .map(ProduitCatDTO::new)
+                .collect(Collectors.toList());
+    }
+    @Transactional
+    public void removeProductFromCategory(Long categoryId, Long productId) {
+        produitsRepository.removeProductFromCategory(categoryId, productId);
+
+        // Clear persistence context to reflect changes immediately
+        entityManager.flush();
+        entityManager.clear();
+    }
+
 }

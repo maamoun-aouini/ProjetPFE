@@ -7,6 +7,7 @@ import com.example.OnlineSellingApplicationBackend.Repositories.ReclamationRepos
 import com.example.OnlineSellingApplicationBackend.entities.Client;
 import com.example.OnlineSellingApplicationBackend.entities.Commande;
 import com.example.OnlineSellingApplicationBackend.entities.Reclamation;
+import com.example.OnlineSellingApplicationBackend.entities.StatusReclamation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,15 @@ public class ReclamationService {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("La commande spécifiée n'existe pas ou n'appartient pas à ce client.");
         }
+        if (reclamation.getTitle() == null || reclamation.getTitle().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Le titre est obligatoire.");
+        }
+        if (reclamation.getDescription() == null || reclamation.getDescription().trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("La description est obligatoire.");
+        }
+        if (reclamation.getType() == null) {
+            return ResponseEntity.badRequest().body("Le type de réclamation est obligatoire.");
+        }
 
         // Associer la réclamation au client et à la commande
         reclamation.setClient(client);
@@ -71,7 +81,10 @@ public class ReclamationService {
             String description = reclamation.getDescription(); // Use description field
             String date = reclamation.getDateReclamation() != null ? reclamation.getDateReclamation().toString() : "Date non disponible"; // Ensure proper date conversion
             Long commandeId = reclamation.getCommande() != null ? reclamation.getCommande().getIdCommande() : null;
-
+            String type = reclamation.getType().name();
+            String status = reclamation.getStatus().name();
+            String tel = reclamation.getClient().getTel();
+            String email = reclamation.getClient().getEmail();
             // Créer l'objet DTO avec la description incluse
             FormattedReclamationResponse response = new FormattedReclamationResponse(
                     clientName,
@@ -79,7 +92,11 @@ public class ReclamationService {
                     description,
                     date,
                     commandeId,
-                    reclamation.getIdReclamation() // Add the ID
+                    reclamation.getIdReclamation(), // Add the ID
+                    type,
+                    status,
+                    tel,
+                    email
             );
             formattedReclamations.add(response);
         }
@@ -111,7 +128,25 @@ public class ReclamationService {
                 reclamation.getDescription(),
                 reclamation.getDateReclamation() != null ? reclamation.getDateReclamation().toString() : "Date non disponible",
                 reclamation.getCommande() != null ? reclamation.getCommande().getIdCommande() : null,
-                reclamation.getIdReclamation() // Add the ID
+                reclamation.getIdReclamation(), // Add the ID
+                reclamation.getType().name(),
+                reclamation.getStatus().name(),
+                reclamation.getClient().getTel(),
+                reclamation.getClient().getEmail()
         );
+
+    }
+
+    public ResponseEntity<?> updateReclamationStatus(Long id, StatusReclamation newStatus) {
+        Reclamation reclamation = reclamationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Réclamation introuvable"));
+
+        if (newStatus == null) {
+            return ResponseEntity.badRequest().body("Statut invalide");
+        }
+
+        reclamation.setStatus(newStatus);
+        reclamationRepository.save(reclamation);
+        return ResponseEntity.ok(reclamation);
     }
 }

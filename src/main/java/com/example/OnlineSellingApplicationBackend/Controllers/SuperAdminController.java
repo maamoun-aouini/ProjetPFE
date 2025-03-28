@@ -14,8 +14,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/superadmin")
@@ -32,6 +38,7 @@ public class SuperAdminController {
     private FileStorageService fileStorageService;
     @Autowired
     private SuperAdminRepository superAdminRepository;
+    private final String UPLOAD_DIR = "uploads/profile-images/";
 
 
     @PostMapping
@@ -50,11 +57,14 @@ public class SuperAdminController {
             @RequestParam("password") String password,
             @RequestParam(value = "profil", required = false) MultipartFile profil) {
 
+        // Encode the password
+        String encodedPassword = passwordEncoder.encode(password);
+
         // Create Admin object
         Admin admin = new Admin();
         admin.setNom(name);
         admin.setEmail(email);
-        admin.setMotDePasse(password); // Don't encode here, let the service do it
+        admin.setMotDePasse(encodedPassword);
 
         // Handle file upload if provided
         if (profil != null && !profil.isEmpty()) {
@@ -62,10 +72,11 @@ public class SuperAdminController {
             admin.setProfil(profilePath);
         }
 
-        // Use the service to save admin (which will encode the password)
+        // Use the repository to save admin
         Admin savedAdmin = adminRepository.save(admin);
         return ResponseEntity.ok(savedAdmin);
     }
+
     @PutMapping(value = "/admins/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Admin> updateAdmin(
             @PathVariable Long id,

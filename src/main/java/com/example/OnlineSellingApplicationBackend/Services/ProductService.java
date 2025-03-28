@@ -9,7 +9,12 @@ import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -26,7 +31,35 @@ public class ProductService {
     private ProduitsRepository produitsRepository;
     @Autowired
     private CommandeRepository commandeRepository;
+    private String saveProductImage(MultipartFile file) throws IOException {
+        String uploadDir = Paths.get("uploads/products").toAbsolutePath().toString();
+        Path uploadPath = Paths.get(uploadDir);
 
+        if (!Files.exists(uploadPath)) {
+            Files.createDirectories(uploadPath);
+        }
+
+        String fileName = UUID.randomUUID() + "_" +
+                Objects.requireNonNull(file.getOriginalFilename()).replace(" ", "_");
+        Path filePath = uploadPath.resolve(fileName);
+        Files.copy(file.getInputStream(), filePath);
+
+        return "products/" + fileName;
+    }
+    private void deleteProductPhotos(Set<String> photos) {
+        if (photos == null || photos.isEmpty()) return;
+
+        for (String photoPath : photos) {
+            try {
+                Path path = Paths.get("uploads", photoPath);
+                if (Files.exists(path)) {
+                    Files.delete(path);
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to delete product image: " + photoPath);
+            }
+        }
+    }
     // Add categories to a product
         public List<ProduitAdminDTO> getAllProducts() {
             return produitRepository.findAllWithRatings() // Custom repository method
@@ -59,34 +92,53 @@ public class ProductService {
                 .average()
                 .orElse(0.0);
     }
+public ProductUpdateCategoriesResponse updateProductAndItsCategories(Long productId, ProductCreateUpdateRequest request , List<MultipartFile> photos) throws IOException{
+    ProductUpdateCategoriesResponse response = new ProductUpdateCategoriesResponse();
+    response.setProductId(productId);
 
-    public ProductUpdateCategoriesResponse updateProductAndItsCategories(Long productId, ProductCreateUpdateRequest request) {
-        ProductUpdateCategoriesResponse response = new ProductUpdateCategoriesResponse();
-        response.setProductId(productId);
+    try {
+        // Get existing product
+        Produits product = produitRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        try {
-            // Validate input
-            Set<Long> incomingIds = Optional.ofNullable(request.getCategoryIds())
-                    .orElseGet(HashSet::new);
+        // Always update basic fields
+        product.setDescription(request.getDescription());
+        product.setNom(request.getNom());
+        product.setPromotionPartenaire(request.getPromotionPartenaire());
+        product.setPromotionParticulier(request.getPromotionParticulier());
+        product.setSelection(request.getSelection());
+        product.setPhoto(request.getPhoto());
+        product.setQuantite(request.getQuantite());
+        product.setPrix(request.getPrix());
+        product.setDisponibilite(request.isDisponibilite());
+        if (photos != null && !photos.isEmpty()) {
+            // Delete existing photos
+            deleteProductPhotos(product.getPhoto());
+            // Save new photos
+            Set<String> newPhotoPaths = photos.stream()
+                    .map(file -> {
+                        try {
+                            return saveProductImage(file);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Failed to save product image: " + e.getMessage());
+                        }
+                    })
+                    .collect(Collectors.toSet());
+            product.setPhoto(newPhotoPaths);
+        }
 
-            if (incomingIds.isEmpty()) {
-                response.setError("No categories provided for update");
-                return response;
-            }
+        // Handle categories
+        Set<Long> incomingIds = Optional.ofNullable(request.getCategoryIds())
+                .orElseGet(HashSet::new);
 
-            Produits product = produitRepository.findById(productId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-            product.setDescription(request.getDescription());
-            product.setNom(request.getNom());
-            product.setPromotionPartenaire(request.getPromotionPartenaire());
-            product.setPromotionParticulier(request.getPromotionParticulier());
-            product.setSelection(request.getSelection());
-            product.setPhoto(request.getPhoto());
-            product.setQuantite(request.getQuantite());
-            product.setPrix(request.getPrix());
-            product.setDisponibilite(request.isDisponibilite());
-            // Batch load categories
+        if (incomingIds.isEmpty()) {
+            // Clear all categories if empty array is received
+            product.getCategories().clear();
+        } else {
+            // Process category updates
             List<Categories> categories = categoriesRepository.findAllById(incomingIds);
+
+            // Validate all categories exist
             if (categories.size() != incomingIds.size()) {
                 Set<Long> foundIds = categories.stream()
                         .map(Categories::getId)
@@ -95,7 +147,7 @@ public class ProductService {
                 throw new ResourceNotFoundException("Missing categories: " + incomingIds);
             }
 
-            // Build ancestor map for each category
+            // Build ancestor map and determine exclusions
             Map<Long, Set<Long>> categoryAncestors = new HashMap<>();
             for (Categories category : categories) {
                 Set<Long> ancestors = new HashSet<>();
@@ -107,7 +159,6 @@ public class ProductService {
                 categoryAncestors.put(category.getId(), ancestors);
             }
 
-            // Determine categories to exclude (those that are ancestors of others in the list)
             Set<Long> excludedCategoryIds = new HashSet<>();
             for (Long categoryId : incomingIds) {
                 for (Long otherCategoryId : incomingIds) {
@@ -120,50 +171,32 @@ public class ProductService {
                 }
             }
 
-            // Final category IDs are those not excluded
             Set<Long> finalCategoryIds = incomingIds.stream()
                     .filter(id -> !excludedCategoryIds.contains(id))
                     .collect(Collectors.toSet());
 
-            // Retrieve the final categories (already loaded)
             Set<Categories> finalCategories = categories.stream()
                     .filter(c -> finalCategoryIds.contains(c.getId()))
                     .collect(Collectors.toSet());
 
-            // Update product associations
             product.setCategories(finalCategories);
-            produitRepository.save(product);
+        }
 
-            // Populate response
-            for (Categories category : finalCategories) {
+        // Save updated product
+        produitRepository.save(product);
+
+        // Populate response
+        product.getCategories().forEach(category ->
                 response.getAddedCategories().add(
                         new CategoryMessage(category.getId(), category.getNom())
-                );
-            }
+                ));
 
-            // Populate skipped categories
-            for (Long excludedId : excludedCategoryIds) {
-                Categories excludedCategory = categories.stream()
-                        .filter(c -> c.getId().equals(excludedId))
-                        .findFirst()
-                        .orElse(null);
-                if (excludedCategory != null) {
-                    response.getSkippedCategories().add(
-                            new CategoryMessage(
-                                    excludedCategory.getId(),
-                                    excludedCategory.getNom(),
-                                    "Category skipped because it is an ancestor of another category in the request"
-                            )
-                    );
-                }
-            }
-
-        } catch (ResourceNotFoundException e) {
-            response.setError(e.getMessage());
-        }
-        return response;
+    } catch (ResourceNotFoundException e) {
+        response.setError(e.getMessage());
     }
-    public Produits createProductWithCategories(ProductCreateUpdateRequest request) {
+    return response;
+}
+    public Produits createProductWithCategories(ProductCreateUpdateRequest request ,  List<MultipartFile> photos) {
         // Validate input categories
         Set<Long> incomingCategoryIds = Optional.ofNullable(request.getCategoryIds())
                 .orElse(Collections.emptySet());
@@ -174,11 +207,22 @@ public class ProductService {
         product.setPromotionPartenaire(request.getPromotionPartenaire());
         product.setPromotionParticulier(request.getPromotionParticulier());
         product.setSelection(request.getSelection());
-        product.setPhoto(request.getPhoto());
         product.setQuantite(request.getQuantite());
         product.setPrix(request.getPrix());
         product.setDisponibilite(request.isDisponibilite());
 
+        if (photos != null && !photos.isEmpty()) {
+            Set<String> photoPaths = photos.stream()
+                    .map(file -> {
+                        try {
+                            return saveProductImage(file);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Failed to save product image: " + e.getMessage());
+                        }
+                    })
+                    .collect(Collectors.toSet());
+            product.setPhoto(photoPaths);
+        }
         // Process categories if provided
         if (!incomingCategoryIds.isEmpty()) {
             List<Categories> categories = categoriesRepository.findAllById(incomingCategoryIds);

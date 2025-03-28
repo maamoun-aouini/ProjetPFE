@@ -1,10 +1,12 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 
+import com.example.OnlineSellingApplicationBackend.DTO.ProduitCatDTO;
 import com.example.OnlineSellingApplicationBackend.DTO.SubCategoryResponse;
 import com.example.OnlineSellingApplicationBackend.DTO.CategoryResponse;
 import com.example.OnlineSellingApplicationBackend.DTO.updateCategoryParent;
 import com.example.OnlineSellingApplicationBackend.Services.CategoriesService;
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +29,7 @@ public class CategoriesController {
     @PostMapping
     public ResponseEntity<Categories> addCategory(
             @RequestParam("name") String name,
-            @RequestParam("description") String description,
+            @RequestParam(value = "description",required = false) String description,
             @RequestParam(value = "parentId", required = false) Long parentId,
             @RequestParam(value = "images", required = false) MultipartFile[] images) {
         Categories category = new Categories();
@@ -53,11 +55,16 @@ public class CategoriesController {
             @RequestParam(value = "description", required = false) String description,
             @RequestParam(value = "parentId", required = false) Long parentId,
             @RequestParam(value = "images", required = false) MultipartFile[] images) {
+
         try {
+            // Convertir explicitement parentId 0 en null
+            Long processedParentId = (parentId != null && parentId == 0L) ? null : parentId;
+
             updateCategoryParent updatedCategory = new updateCategoryParent();
             updatedCategory.setName(name);
             updatedCategory.setDescription(description);
-            updatedCategory.setParentId(parentId);
+            updatedCategory.setParentId(processedParentId);
+
             Set<String> imagePaths = new HashSet<>();
             if (images != null) {
                 for (MultipartFile image : images) {
@@ -69,21 +76,27 @@ public class CategoriesController {
 
             Categories modifiedCategory = categoriesService.modiferCategory(id, updatedCategory);
             return ResponseEntity.ok(modifiedCategory);
+
         } catch (RuntimeException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Category or Parent not found: " + ex.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Category or Parent not found: " + ex.getMessage());
         }
     }
-
+    // Update the controller to remove deleteProducts parameter
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCategory(
             @PathVariable Long id,
-            @RequestParam(value = "deleteProducts", defaultValue = "false") boolean deleteProducts,
-            @RequestParam(value = "removeFromProducts", defaultValue = "false") boolean removeFromProducts) {
+            @RequestParam(defaultValue = "false") boolean deleteSubCategories) {
+
         try {
-            categoriesService.deleteCategory(id, deleteProducts, removeFromProducts);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            categoriesService.deleteCategory(id, deleteSubCategories);
+            return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+
+            return ResponseEntity.internalServerError()
+                    .body("Error deleting category: " + e.getMessage());
         }
     }
 
@@ -144,4 +157,28 @@ public class CategoriesController {
             throw new RuntimeException("Failed to save image: " + e.getMessage());
         }
     }
+    @DeleteMapping("/{categoryId}/products/{productId}")
+    public ResponseEntity<String> removeProductFromCategory(
+            @PathVariable Long categoryId,
+            @PathVariable Long productId
+    ) {
+        try {
+            categoriesService.removeProductFromCategory(categoryId, productId);
+            return ResponseEntity.ok("Product successfully removed from category");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to remove product from category: " + e.getMessage());
+        }
+    }
+    @GetMapping("/products/{categoryId}")
+    public ResponseEntity<List<ProduitCatDTO>> getProductsByCategory(@PathVariable Long categoryId) {
+        List<ProduitCatDTO> products = categoriesService.findProductsByCategoryId(categoryId);
+
+        if (products.isEmpty()) {
+            return ResponseEntity.noContent().build(); // 204 No Content si aucun produit trouvé
+        }
+
+        return ResponseEntity.ok(products);
+    }
+
 }

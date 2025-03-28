@@ -62,9 +62,11 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     long countByRegistrationDate(@Param("date") LocalDateTime date);
     @Query("SELECT COUNT(c) FROM Client c WHERE c.lastLogin >= :date")
     long countActiveUsers(@Param("date") LocalDateTime date);
+    List<Client> findTop10ByOrderByRegistrationDateDesc();
+    @Query("SELECT DISTINCT c FROM Client c " +
+            "LEFT JOIN FETCH c.adresse a " +
+            "LEFT JOIN FETCH a.ville v " +
+            "LEFT JOIN FETCH v.pays " +
+            "WHERE c.id = :clientId")
+    Optional<Client> findByIdWithFullAddress(@Param("clientId") Long clientId);
 }
-
-
-
-
-

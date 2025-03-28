@@ -34,5 +34,9 @@ public interface ProduitsRepository extends JpaRepository<Produits, Long> {
 
     @Query("SELECT COUNT(p) FROM Produits p WHERE p.quantite < 10")
     long countLowStockProducts();
-
+    @Modifying
+    @Transactional
+    @Query(value = "DELETE FROM produit_categorie WHERE categorie_id = :categoryId AND produit_id = :productId", nativeQuery = true)
+    void removeProductFromCategory(@Param("categoryId") Long categoryId, @Param("productId") Long productId);
+    List<Produits> findByCategoriesId(Long categoryId);
 }

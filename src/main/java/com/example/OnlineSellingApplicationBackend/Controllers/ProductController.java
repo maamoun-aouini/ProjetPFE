@@ -3,45 +3,56 @@ import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Services.ProductService;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/Products")
 public class ProductController {
     @Autowired
     private ProductService productService;
+    @Autowired
+    private ObjectMapper objectMapper;
     //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
     @GetMapping
     public ResponseEntity<List<ProduitAdminDTO>> getAllProducts() {
         List<ProduitAdminDTO> products = productService.getAllProducts();
         return ResponseEntity.ok(products);
     }
-    //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
-    @PutMapping("/{id}")
+
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProductAndItsCategories(
             @PathVariable Long id,
-            @RequestBody ProductCreateUpdateRequest request
-    ){
-        try{
-            ProductUpdateCategoriesResponse response = productService.updateProductAndItsCategories(id, request);
+            @RequestPart("product") String productJson,
+            @RequestPart(value = "photos", required = false) List<MultipartFile> photos) {
+
+        try {
+            ProductCreateUpdateRequest request = objectMapper.readValue(productJson, ProductCreateUpdateRequest.class);
+            ProductUpdateCategoriesResponse response = productService.updateProductAndItsCategories(id, request, photos);
             return ResponseEntity.status(HttpStatus.OK).body(response);
-        }catch (ResourceNotFoundException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body( "Category you want to add as parent is not found" + ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
         }
     }
     //@PreAuthorize("hasAnyRole('SUPERADMIN' , 'ADMIN')")
-    @PostMapping
-    public ResponseEntity<?> createProduct(@RequestBody ProductCreateUpdateRequest request) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> createProduct(
+            @RequestPart("product") String productJson,
+            @RequestPart(value = "photos", required = false) List<MultipartFile> photos) {
+
         try {
-            Produits createdProduct = productService.createProductWithCategories(request);
+            ProductCreateUpdateRequest request = objectMapper.readValue(productJson, ProductCreateUpdateRequest.class);
+            Produits createdProduct = productService.createProductWithCategories(request, photos);
             return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
-        } catch (ResourceNotFoundException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid request: " + ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
         }
     }
     @GetMapping("/distribution")

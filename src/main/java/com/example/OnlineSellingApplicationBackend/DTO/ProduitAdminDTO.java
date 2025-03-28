@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 @Getter
@@ -20,13 +21,13 @@ public class ProduitAdminDTO {
     private boolean disponibilite ;
     private String nom;
     private String description;
-    private Set<String> photo;
     private int quantite;
     private double prix;
     private double promotionPartenaire;
     private double promotionParticulier;
     private Set<Categories> categories;
     private Double averageRating;
+    private Set<String> photo = new HashSet<>();
 
     public boolean isDisponibilite() {
         return disponibilite;
@@ -56,6 +57,7 @@ public class ProduitAdminDTO {
         this.promotionParticulier = promotionParticulier;
         this.categories = categories;
         this.averageRating = averageRating;
+
     }
 
     public Set<Categories> getCategories() {

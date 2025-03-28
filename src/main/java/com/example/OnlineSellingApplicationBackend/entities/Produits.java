@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Data
@@ -20,7 +21,11 @@ public class Produits {
     private double promotionPartenaire;
     private double promotionParticulier;
     private String selection;
-    private Set<String> photo;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "Produit_photos", joinColumns = @JoinColumn(name = "produit_id"))
+    @Column(name = "photo_path")
+    private Set<String> photo = new HashSet<>();
     private int quantite;
     private double prix;
     private boolean disponibilite;
@@ -37,15 +42,15 @@ public class Produits {
     @OneToMany(mappedBy = "produit")
     private Set<LignePaquet> lignePaquets;
 
-    @ManyToMany(cascade = CascadeType.ALL)
+    @ManyToMany(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinTable(
             name = "ProduitCategorie",
             joinColumns = @JoinColumn(name = "produit_id"),
             inverseJoinColumns = @JoinColumn(name = "categorie_id")
     )
     private Set<Categories> categories;
-
     // Getters and setters
+
     public Set<Categories> getCategories() {
         return categories;
     }

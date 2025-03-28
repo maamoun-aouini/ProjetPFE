@@ -603,5 +603,33 @@ public class ClientService {
 
         return stats;
     }
+    public List<ClientInfoAdmin> getRecentClients() {
+        return clientRepository.findTop10ByOrderByRegistrationDateDesc()
+                .stream()
+                .map(client -> {
+                    ClientInfoResponse clientInfoResponse = new ClientInfoResponse(
+                            client.getId(),
+                            client.isActif(),
+                            client.getNom(),
+                            client.getEmail(),
+                            client.getTel(),
+                            client.getType() != null ? client.getType().toString() : "N/A",
+                            client.getDescription(),
+                            Optional.ofNullable(client.getEntreprise())
+                                    .map(Entreprise::getNom)
+                                    .orElse("N/A"),
+                            Optional.ofNullable(client.getEntreprise())
+                                    .map(Entreprise::getMatriculeFiscale)
+                                    .orElse("N/A")
+                    );
+                    AddressResponse addressResponse = client.getAdresse() != null
+                            ? new AddressResponse(client.getAdresse())
+                            : null;
+                    clientInfoResponse.setAddressResponse(addressResponse);
+                    return new ClientInfoAdmin(clientInfoResponse, addressResponse);
+                })
+                .collect(Collectors.toList());
+    }
+
 }
 

@@ -1,6 +1,7 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 
 import com.example.OnlineSellingApplicationBackend.DTO.FormattedReclamationResponse;
+import com.example.OnlineSellingApplicationBackend.DTO.UpdateStatusDTO;
 import com.example.OnlineSellingApplicationBackend.Services.ReclamationService;
 import com.example.OnlineSellingApplicationBackend.entities.Reclamation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,6 +57,9 @@ public class ReclamationController {
         FormattedReclamationResponse response = reclamationService.getReclamationById(id);
         return ResponseEntity.ok(response);
     }
-
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(@PathVariable Long id, @RequestBody UpdateStatusDTO dto) {
+        return reclamationService.updateReclamationStatus(id, dto.getStatus());
+    }
 
 }

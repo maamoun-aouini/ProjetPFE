@@ -49,32 +49,16 @@ public class SuperAdminService {
     // Ajouter un Admin
 
     public Admin ajouterAdmin(Admin admin) {
-        // Check if email exists in Client table
-        Optional<Client> client = clientRepository.findByEmail(admin.getEmail());
-        if (client.isEmpty()) {
-            // Check if email exists in SuperAdmin table
-            Optional<SuperAdmin> superAdmin = superAdminRepository.findByEmail(admin.getEmail());
-            if (superAdmin.isPresent()) {
-                throw new RuntimeException("The email you are using is registered in the superAdmin table");
-            }
-
-            // Check if email exists in Admin table (renamed variable to avoid conflict)
-            Optional<Admin> existingAdmin = adminRepository.findByEmail(admin.getEmail());
-            if (existingAdmin.isPresent()) {
-                throw new RuntimeException("The email you are using is registered in the admin table");
-            }
-        } else {
-            throw new RuntimeException("The email you are using is registered in the client table");
+        // Check if email already exists
+        if (adminRepository.findByEmail(admin.getEmail()) != null) {
+            throw new RuntimeException("Email already exists");
         }
 
-        // Create new Admin with different variable name (avoiding parameter conflict)
-        Admin newAdmin = new Admin();
-        newAdmin.setProfil(admin.getProfil());
-        newAdmin.setNom(admin.getNom());
-        newAdmin.setEmail(admin.getEmail());
-        newAdmin.setMotDePasse(passwordEncoder.encode(admin.getMotDePasse()));
+        // Encode password before saving
+        admin.setMotDePasse(passwordEncoder.encode(admin.getMotDePasse()));
 
-        return adminRepository.save(newAdmin);
+        // Save admin
+        return adminRepository.save(admin);
     }
     public SuperAdmin ajouterSuperAdmin(SuperAdmin superAdmin) {
         Optional<Client> client = clientRepository.findByEmail(superAdmin.getEmail());

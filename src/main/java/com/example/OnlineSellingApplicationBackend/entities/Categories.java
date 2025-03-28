@@ -9,6 +9,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -32,18 +33,40 @@ public class Categories {
     @CollectionTable(name = "category_photos", joinColumns = @JoinColumn(name = "category_id"))
     @Column(name = "photo_path")
     private Set<String> photo = new HashSet<>();
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
     @JsonBackReference // Avoids recursive serialization
     private Categories parent;
 
-    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "parent",
+            cascade = {CascadeType.PERSIST, CascadeType.MERGE},
+            orphanRemoval = false,
+            fetch = FetchType.LAZY)
     @JsonManagedReference // Handles parent-child relationships during serialization
-    private List<Categories> subCategories;
+    private List<Categories> subCategories = new ArrayList<>();
 
     @ManyToMany(mappedBy = "categories")
     @JsonIgnore
-    private Set<Produits> produits = new HashSet<>(); // Initialize to avoid null issues
+    private List<Produits> produits = new ArrayList<>();
+
+    // Méthodes utilitaires pour gérer les relations bidirectionnelles
+    public void addSubCategory(Categories subCategory) {
+        subCategories.add(subCategory);
+        subCategory.setParent(this);
+    }
+
+    public void removeSubCategory(Categories subCategory) {
+        subCategories.remove(subCategory);
+        subCategory.setParent(null);
+    } // Initialize to avoid null issues
+
+    public List<Produits> getProduits() {
+        return produits;
+    }
+
+    public void setProduits(List<Produits> produits) {
+        this.produits = produits;
+    }
 
     public Set<String> getPhoto() {
         return photo;
@@ -53,13 +76,6 @@ public class Categories {
         this.photo = photo;
     }
 
-    public Set<Produits> getProduits() {
-        return produits;
-    }
-
-    public void setProduits(Set<Produits> produits) {
-        this.produits = produits;
-    }
 
     public Long getId() {
         return id;
