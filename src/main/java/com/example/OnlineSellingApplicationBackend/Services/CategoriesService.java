@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -148,11 +149,28 @@ public class CategoriesService {
         return categoriesRepository.findAllRootCategoriesWithSubs();
     }
     public List<ProduitCatDTO> findProductsByCategoryId(Long categoryId) {
-        List<Produits> produits = produitsRepository.findByCategoriesId(categoryId);
+        // Get all category IDs including subcategories
+        Set<Long> allCategoryIds = new HashSet<>();
+        allCategoryIds.add(categoryId); // Add the parent category ID
+        collectSubcategoryIds(categoryId, allCategoryIds);
+
+        // Get products from all categories (parent and subcategories)
+        List<Produits> produits = produitsRepository.findByCategoriesIdIn(allCategoryIds);
 
         return produits.stream()
                 .map(ProduitCatDTO::new)
                 .collect(Collectors.toList());
+    }
+
+    private void collectSubcategoryIds(Long categoryId, Set<Long> categoryIds) {
+        Categories category = categoriesRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        // Recursively collect subcategory IDs
+        for (Categories subCategory : category.getSubCategories()) {
+            categoryIds.add(subCategory.getId());
+            collectSubcategoryIds(subCategory.getId(), categoryIds);
+        }
     }
     @Transactional
     public void removeProductFromCategory(Long categoryId, Long productId) {

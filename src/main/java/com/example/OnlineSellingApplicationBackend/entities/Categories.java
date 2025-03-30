@@ -2,6 +2,7 @@ package com.example.OnlineSellingApplicationBackend.entities;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -18,6 +19,7 @@ import java.util.Set;
 @NoArgsConstructor
 @Data
 @Entity
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Categories {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)

@@ -89,8 +89,15 @@ public class CommandeService {
                 })
                 .toList();
 
-        // Save command and lines
+        // Set command lines
         commande.setLigneCommandes(ligneCommands);
+
+        // Calculate and set total
+        double total = ligneCommands.stream()
+                .mapToDouble(lc -> lc.getProduit().getPrix() * lc.getQuantite())
+                .sum();
+        commande.setTotal(total);  // Make sure this is set before saving
+
         return commandeRepository.save(commande);
     }
 
@@ -186,21 +193,7 @@ public class CommandeService {
             Client client = commande.getClient();
             dto.setCustomer(client.getNom());
 
-            // Calculate total based on order type
-            double total;
-            if (TypeCommande.Pack.equals(commande.getType())) {
-                // For pack type, calculate total from command pack line items
-                total = commande.getLigneCommandePack().stream()
-                        .mapToDouble(lcp -> lcp.getPaquet().getPrix() * lcp.getQuantite())
-                        .sum();
-            } else {
-                // For product type, calculate total from standard line items
-                total = commande.getLigneCommandes().stream()
-                        .mapToDouble(lc -> lc.getProduit().getPrix() * lc.getQuantite())
-                        .sum();
-            }
-            dto.setTotal(total);
-
+            dto.setTotal(commande.getTotal());
             dto.setStatus(commande.getEtat());
             dto.setDate(commande.getDateCommande());
 
@@ -215,11 +208,22 @@ public class CommandeService {
     }
 
     public CommandeDetailDTO getOrderDetails(Long orderId) {
-        Commande commande = commandeRepository.findByIdWithDetails(orderId)
+        // Fetch the order with line items and address info
+        Commande commande = commandeRepository.findByIdWithLigneCommandes(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        Hibernate.initialize(commande.getLigneCommandes());
-        Hibernate.initialize(commande.getLigneCommandePack());
+        // Fetch the order with line packs separately
+        Optional<Commande> commandeWithPacks = commandeRepository.findByIdWithLigneCommandePack(orderId);
+
+        // Merge the ligneCommandePack if found
+        commandeWithPacks.ifPresent(c -> {
+            commande.setLigneCommandePack(c.getLigneCommandePack());
+
+            // Maintain bidirectional relationships
+            if (commande.getLigneCommandePack() != null) {
+                commande.getLigneCommandePack().forEach(lcp -> lcp.setCommande(commande));
+            }
+        });
 
         return mapToCommandeDetailDTO(commande);
     }
@@ -243,53 +247,70 @@ public class CommandeService {
         // Address info
         CommandeDetailDTO.AddressDTO addressDTO = new CommandeDetailDTO.AddressDTO();
         Adresse adresse = commande.getAdresseLivraison();
-        addressDTO.setStreet(adresse.getRue());
-        addressDTO.setNumber(adresse.getNumero());
-        addressDTO.setCity(adresse.getVille().getNom());
-        addressDTO.setCountry(adresse.getVille().getPays().getNom());
+        if (adresse != null) {
+            addressDTO.setStreet(adresse.getRue());
+            addressDTO.setNumber(adresse.getNumero());
+            addressDTO.setCity(adresse.getVille().getNom());
+            addressDTO.setCountry(adresse.getVille().getPays().getNom());
+        }
         dto.setDeliveryAddress(addressDTO);
 
         // Items mapping
         List<CommandeDetailDTO.OrderItemDTO> items = new ArrayList<>();
 
         // Process products
-        commande.getLigneCommandes().forEach(lc -> {
-            CommandeDetailDTO.OrderItemDTO item = new CommandeDetailDTO.OrderItemDTO();
-            item.setItemType("product");
-            item.setName(lc.getProduit().getNom());
-            item.setQuantity(lc.getQuantite());
-            item.setUnitPrice(lc.getProduit().getPrix());
-            item.setTotalPrice(lc.getProduit().getPrix() * lc.getQuantite());
-            items.add(item);
-        });
+        if (commande.getLigneCommandes() != null) {
+            commande.getLigneCommandes().forEach(lc -> {
+                CommandeDetailDTO.OrderItemDTO item = new CommandeDetailDTO.OrderItemDTO();
+                item.setName(lc.getProduit().getNom());
+                item.setItemType("product");
+                item.setQuantity(lc.getQuantite());
+                items.add(item);
+            });
+        }
 
         // Process packs
-        commande.getLigneCommandePack().forEach(lcp -> {
-            CommandeDetailDTO.OrderItemDTO item = new CommandeDetailDTO.OrderItemDTO();
-            item.setItemType("pack");
-            item.setName(lcp.getPaquet().getNom());
-            item.setQuantity(lcp.getQuantite());
-            item.setUnitPrice(lcp.getPaquet().getPrix());
-            item.setTotalPrice(lcp.getPaquet().getPrix() * lcp.getQuantite());
+        // Process packs
+        if (commande.getLigneCommandePack() != null) {
+            // Use a Set to avoid duplicates or group by pack ID
+            Map<Long, CommandeDetailDTO.OrderItemDTO> packMap = new HashMap<>();
 
-            // Add pack contents
-            item.setPackContents(lcp.getPaquet().getProduits().stream()
-                    .map(Produits::getNom)
-                    .collect(Collectors.toList()));
+            commande.getLigneCommandePack().forEach(lcp -> {
+                // If this pack hasn't been processed yet
+                if (!packMap.containsKey(lcp.getPaquet().getId())) {
+                    CommandeDetailDTO.OrderItemDTO item = new CommandeDetailDTO.OrderItemDTO();
+                    item.setName(lcp.getPaquet().getNom());
+                    item.setItemType("pack");
+                    item.setQuantity(lcp.getQuantite());
 
-            items.add(item);
-        });
+                    // Map pack contents
+                    List<String> contents = new ArrayList<>();
+                    if (lcp.getPaquet() != null && lcp.getPaquet().getLignePaquets() != null) {
+                        lcp.getPaquet().getLignePaquets().forEach(lp -> {
+                            if (lp.getProduit() != null) {
+                                contents.add(lp.getProduit().getNom() + " (x" + lp.getQuantite() + ")");
+                            }
+                        });
+                    }
+                    item.setPackContents(contents.isEmpty() ? null : contents);
+                    packMap.put(lcp.getPaquet().getId(), item);
+                }
+            });
+
+            // Add all unique packs to the items list
+            items.addAll(packMap.values());
+        }
 
         dto.setItems(items);
-
-        // Calculate total
-        double total = items.stream()
-                .mapToDouble(CommandeDetailDTO.OrderItemDTO::getTotalPrice)
-                .sum();
-        dto.setTotal(total);
+        dto.setTotal(commande.getTotal());
 
         return dto;
     }
+
+
+
+
+
     public List<SalesDataDTO> getSalesData(String range) {
         final ZoneId zone = ZoneId.of("Europe/Paris");
         Date endDate = new Date();
@@ -422,15 +443,37 @@ public class CommandeService {
         if (previousRevenue == null || previousRevenue == 0) return 0.0;
         return ((currentRevenue - previousRevenue) / previousRevenue) * 100;
     }
+
+
     public List<DailyOrdersDTO> getDailyOrders(LocalDate startDate, LocalDate endDate) {
-        return commandeRepository.findDailyOrdersBetweenDates(startDate, endDate)
+        // Adjust end date to include the entire day (if the database stores datetime)
+        LocalDate adjustedEndDate = endDate.plusDays(1);
+
+        System.out.println("Querying with adjusted date range: " + startDate + " to " + adjustedEndDate);
+
+        return commandeRepository.findDailyOrdersBetweenDates(startDate, adjustedEndDate)
                 .stream()
-                .map(result -> new DailyOrdersDTO(
-                        ((java.sql.Date) result[0]).toLocalDate(),  // Cast to java.sql.Date
-                        ((Number) result[1]).intValue()
-                ))
+                .map(result -> {
+                    LocalDate date = convertToLocalDate((Date) result[0]);
+                    int count = ((Number) result[1]).intValue();
+                    System.out.println("Processing result: date=" + date + ", count=" + count);
+                    return new DailyOrdersDTO(date, count);
+                })
                 .collect(Collectors.toList());
     }
+
+    private LocalDate convertToLocalDate(Date date) {
+        if (date == null) {
+            return null;
+        }
+        // For java.sql.Date
+        if (date instanceof java.sql.Date) {
+            return ((java.sql.Date) date).toLocalDate();
+        }
+        // For java.util.Date
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
     // CommandeService.java
     public List<StatusDistributionDTO> getOrderStatusDistribution() {
         return commandeRepository.countOrdersByStatus().stream()

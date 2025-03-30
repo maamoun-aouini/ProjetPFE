@@ -72,11 +72,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/Products/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
 
                         // Commande endpoints
-                        .requestMatchers("/api/commandes/orders/all").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
-                        .requestMatchers("/api/commandes/{orderId}/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
-                        .requestMatchers("/api/commandes/{clientId}/Pack").hasAuthority("ROLE_USERPARTNER")
-                        .requestMatchers("/api/commandes/{clientId}").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
-                        .requestMatchers("/api/commandes/**").authenticated()
+                       // .requestMatchers("/api/commandes/orders/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        //.requestMatchers("/api/commandes/{orderId}/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                      //  .requestMatchers("/api/commandes/{clientId}/Pack").hasAuthority("ROLE_USERPARTNER")
+                        //.requestMatchers("/api/commandes/{clientId}").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/commandes/**").permitAll()
 
                         // Categories endpoints
                         .requestMatchers("/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")

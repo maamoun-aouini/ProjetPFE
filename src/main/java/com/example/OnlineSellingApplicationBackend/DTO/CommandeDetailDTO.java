@@ -151,8 +151,7 @@ public class CommandeDetailDTO {
         private String itemType;
         private String name;
         private Integer quantity;
-        private Double unitPrice;
-        private Double totalPrice;
+
         private List<String> packContents;
 
         public String getName() {
@@ -163,13 +162,7 @@ public class CommandeDetailDTO {
             this.name = name;
         }
 
-        public Double getTotalPrice() {
-            return totalPrice;
-        }
 
-        public void setTotalPrice(Double totalPrice) {
-            this.totalPrice = totalPrice;
-        }
 
         public List<String> getPackContents() {
             return packContents;
@@ -195,12 +188,6 @@ public class CommandeDetailDTO {
             this.quantity = quantity;
         }
 
-        public Double getUnitPrice() {
-            return unitPrice;
-        }
 
-        public void setUnitPrice(Double unitPrice) {
-            this.unitPrice = unitPrice;
-        }
     }
 }

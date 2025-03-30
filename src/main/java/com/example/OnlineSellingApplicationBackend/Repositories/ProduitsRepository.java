@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,4 +40,6 @@ public interface ProduitsRepository extends JpaRepository<Produits, Long> {
     @Query(value = "DELETE FROM produit_categorie WHERE categorie_id = :categoryId AND produit_id = :productId", nativeQuery = true)
     void removeProductFromCategory(@Param("categoryId") Long categoryId, @Param("productId") Long productId);
     List<Produits> findByCategoriesId(Long categoryId);
+
+    List<Produits> findByCategoriesIdIn(Collection<Long> categoryIds);
 }

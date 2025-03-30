@@ -6,6 +6,7 @@ import com.example.OnlineSellingApplicationBackend.Repositories.ProduitsReposito
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
 import com.example.OnlineSellingApplicationBackend.entities.Note;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
@@ -61,27 +62,36 @@ public class ProductService {
         }
     }
     // Add categories to a product
-        public List<ProduitAdminDTO> getAllProducts() {
-            return produitRepository.findAllWithRatings() // Custom repository method
-                    .stream()
-                    .map(produit -> {
-                        Double avgRating = calculateAverageRating(produit.getNotes());
-                        return new ProduitAdminDTO(
-                                produit.getId(),
-                                produit.isDisponibilite(),
-                                produit.getNom(),
-                                produit.getDescription(),
-                                produit.getPhoto(),
-                                produit.getQuantite(),
-                                produit.getPrix(),
-                                produit.getPromotionPartenaire(),
-                                produit.getPromotionParticulier(),
-                                produit.getCategories(),
-                                avgRating
-                        );
-                    })
-                    .collect(Collectors.toList());
-        }
+    @Transactional // Keep session open for lazy loading
+    public List<ProduitAdminDTO> getAllProducts() {
+        return produitRepository.findAllWithRatings().stream()
+                .map(produit -> {
+                    // Convert Categories entities to CategoryDTOs
+                    Set<CategoryDTO> categoryDTOs = produit.getCategories().stream()
+                            .map(category -> new CategoryDTO(
+                                    category.getId(),
+                                    category.getNom(),
+                                    category.getDescription(),
+                                    category.getPhoto()
+                            ))
+                            .collect(Collectors.toSet());
+
+                    return new ProduitAdminDTO(
+                            produit.getId(),
+                            produit.isDisponibilite(),
+                            produit.getNom(),
+                            produit.getDescription(),
+                            produit.getPhoto(),
+                            produit.getQuantite(),
+                            produit.getPrix(),
+                            produit.getPromotionPartenaire(),
+                            produit.getPromotionParticulier(),
+                            categoryDTOs, // Use DTOs instead of entities
+                            calculateAverageRating(produit.getNotes())
+                    );
+                })
+                .collect(Collectors.toList());
+    }
 
     private Double calculateAverageRating(Set<Note> notes) {
         if (notes == null || notes.isEmpty()) {
@@ -92,110 +102,130 @@ public class ProductService {
                 .average()
                 .orElse(0.0);
     }
-public ProductUpdateCategoriesResponse updateProductAndItsCategories(Long productId, ProductCreateUpdateRequest request , List<MultipartFile> photos) throws IOException{
-    ProductUpdateCategoriesResponse response = new ProductUpdateCategoriesResponse();
-    response.setProductId(productId);
+    public ProductUpdateCategoriesResponse updateProductAndItsCategories(Long productId, ProductCreateUpdateRequest request, List<MultipartFile> photos) throws IOException {
+        ProductUpdateCategoriesResponse response = new ProductUpdateCategoriesResponse();
+        response.setProductId(productId);
 
-    try {
-        // Get existing product
-        Produits product = produitRepository.findById(productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
+        try {
+            // Get existing product
+            Produits product = produitRepository.findById(productId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
-        // Always update basic fields
-        product.setDescription(request.getDescription());
-        product.setNom(request.getNom());
-        product.setPromotionPartenaire(request.getPromotionPartenaire());
-        product.setPromotionParticulier(request.getPromotionParticulier());
-        product.setSelection(request.getSelection());
-        product.setPhoto(request.getPhoto());
-        product.setQuantite(request.getQuantite());
-        product.setPrix(request.getPrix());
-        product.setDisponibilite(request.isDisponibilite());
-        if (photos != null && !photos.isEmpty()) {
-            // Delete existing photos
-            deleteProductPhotos(product.getPhoto());
-            // Save new photos
-            Set<String> newPhotoPaths = photos.stream()
-                    .map(file -> {
-                        try {
-                            return saveProductImage(file);
-                        } catch (IOException e) {
-                            throw new RuntimeException("Failed to save product image: " + e.getMessage());
-                        }
-                    })
-                    .collect(Collectors.toSet());
-            product.setPhoto(newPhotoPaths);
-        }
+            // Always update basic fields
+            product.setDescription(request.getDescription());
+            product.setNom(request.getNom());
+            product.setPromotionPartenaire(request.getPromotionPartenaire());
+            product.setPromotionParticulier(request.getPromotionParticulier());
+            product.setSelection(request.getSelection());
+            product.setQuantite(request.getQuantite());
+            product.setPrix(request.getPrix());
+            product.setDisponibilite(request.isDisponibilite());
 
-        // Handle categories
-        Set<Long> incomingIds = Optional.ofNullable(request.getCategoryIds())
-                .orElseGet(HashSet::new);
+            // Handle photos - preserve existing photos that should be kept
+            if (request.getPhoto() != null) {
+                // Set the remaining photos from the request
+                product.setPhoto(new HashSet<>(request.getPhoto()));
 
-        if (incomingIds.isEmpty()) {
-            // Clear all categories if empty array is received
-            product.getCategories().clear();
-        } else {
-            // Process category updates
-            List<Categories> categories = categoriesRepository.findAllById(incomingIds);
+                // Add new photos if any
+                if (photos != null && !photos.isEmpty()) {
+                    Set<String> newPhotoPaths = photos.stream()
+                            .map(file -> {
+                                try {
+                                    return saveProductImage(file);
+                                } catch (IOException e) {
+                                    throw new RuntimeException("Failed to save product image: " + e.getMessage());
+                                }
+                            })
+                            .collect(Collectors.toSet());
 
-            // Validate all categories exist
-            if (categories.size() != incomingIds.size()) {
-                Set<Long> foundIds = categories.stream()
-                        .map(Categories::getId)
-                        .collect(Collectors.toSet());
-                incomingIds.removeAll(foundIds);
-                throw new ResourceNotFoundException("Missing categories: " + incomingIds);
-            }
-
-            // Build ancestor map and determine exclusions
-            Map<Long, Set<Long>> categoryAncestors = new HashMap<>();
-            for (Categories category : categories) {
-                Set<Long> ancestors = new HashSet<>();
-                Categories current = category;
-                while (current != null) {
-                    ancestors.add(current.getId());
-                    current = current.getParent();
+                    // Add new photos to existing ones
+                    Set<String> updatedPhotos = new HashSet<>(product.getPhoto());
+                    updatedPhotos.addAll(newPhotoPaths);
+                    product.setPhoto(updatedPhotos);
                 }
-                categoryAncestors.put(category.getId(), ancestors);
+            } else if (photos != null && !photos.isEmpty()) {
+                // If photo is null but new photos exist, replace with only new photos
+                Set<String> newPhotoPaths = photos.stream()
+                        .map(file -> {
+                            try {
+                                return saveProductImage(file);
+                            } catch (IOException e) {
+                                throw new RuntimeException("Failed to save product image: " + e.getMessage());
+                            }
+                        })
+                        .collect(Collectors.toSet());
+                product.setPhoto(newPhotoPaths);
             }
 
-            Set<Long> excludedCategoryIds = new HashSet<>();
-            for (Long categoryId : incomingIds) {
-                for (Long otherCategoryId : incomingIds) {
-                    if (categoryId.equals(otherCategoryId)) continue;
-                    Set<Long> otherAncestors = categoryAncestors.get(otherCategoryId);
-                    if (otherAncestors.contains(categoryId)) {
-                        excludedCategoryIds.add(categoryId);
-                        break;
+            // Handle categories
+            Set<Long> incomingIds = Optional.ofNullable(request.getCategoryIds())
+                    .orElseGet(HashSet::new);
+
+            if (incomingIds.isEmpty()) {
+                // Clear all categories if empty array is received
+                product.getCategories().clear();
+            } else {
+                // Process category updates
+                List<Categories> categories = categoriesRepository.findAllById(incomingIds);
+
+                // Validate all categories exist
+                if (categories.size() != incomingIds.size()) {
+                    Set<Long> foundIds = categories.stream()
+                            .map(Categories::getId)
+                            .collect(Collectors.toSet());
+                    incomingIds.removeAll(foundIds);
+                    throw new ResourceNotFoundException("Missing categories: " + incomingIds);
+                }
+
+                // Build ancestor map and determine exclusions
+                Map<Long, Set<Long>> categoryAncestors = new HashMap<>();
+                for (Categories category : categories) {
+                    Set<Long> ancestors = new HashSet<>();
+                    Categories current = category;
+                    while (current != null) {
+                        ancestors.add(current.getId());
+                        current = current.getParent();
+                    }
+                    categoryAncestors.put(category.getId(), ancestors);
+                }
+
+                Set<Long> excludedCategoryIds = new HashSet<>();
+                for (Long categoryId : incomingIds) {
+                    for (Long otherCategoryId : incomingIds) {
+                        if (categoryId.equals(otherCategoryId)) continue;
+                        Set<Long> otherAncestors = categoryAncestors.get(otherCategoryId);
+                        if (otherAncestors.contains(categoryId)) {
+                            excludedCategoryIds.add(categoryId);
+                            break;
+                        }
                     }
                 }
+
+                Set<Long> finalCategoryIds = incomingIds.stream()
+                        .filter(id -> !excludedCategoryIds.contains(id))
+                        .collect(Collectors.toSet());
+
+                Set<Categories> finalCategories = categories.stream()
+                        .filter(c -> finalCategoryIds.contains(c.getId()))
+                        .collect(Collectors.toSet());
+
+                product.setCategories(finalCategories);
             }
 
-            Set<Long> finalCategoryIds = incomingIds.stream()
-                    .filter(id -> !excludedCategoryIds.contains(id))
-                    .collect(Collectors.toSet());
+            // Save updated product
+            produitRepository.save(product);
 
-            Set<Categories> finalCategories = categories.stream()
-                    .filter(c -> finalCategoryIds.contains(c.getId()))
-                    .collect(Collectors.toSet());
+            // Populate response
+            product.getCategories().forEach(category ->
+                    response.getAddedCategories().add(
+                            new CategoryMessage(category.getId(), category.getNom())
+                    ));
 
-            product.setCategories(finalCategories);
+        } catch (ResourceNotFoundException e) {
+            response.setError(e.getMessage());
         }
-
-        // Save updated product
-        produitRepository.save(product);
-
-        // Populate response
-        product.getCategories().forEach(category ->
-                response.getAddedCategories().add(
-                        new CategoryMessage(category.getId(), category.getNom())
-                ));
-
-    } catch (ResourceNotFoundException e) {
-        response.setError(e.getMessage());
+        return response;
     }
-    return response;
-}
     public Produits createProductWithCategories(ProductCreateUpdateRequest request ,  List<MultipartFile> photos) {
         // Validate input categories
         Set<Long> incomingCategoryIds = Optional.ofNullable(request.getCategoryIds())

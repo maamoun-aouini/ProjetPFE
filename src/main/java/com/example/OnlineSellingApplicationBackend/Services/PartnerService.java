@@ -72,6 +72,12 @@ public class PartnerService {
 
         // Save command and lines
         commande.setLigneCommandePack(ligneCommands);
+
+        // Calculate and set total
+        double total = ligneCommands.stream()
+                .mapToDouble(lc -> lc.getPaquet().getPrix() * lc.getQuantite())
+                .sum();
+        commande.setTotal(total);
         return commandeRepository.save(commande);
     }
 

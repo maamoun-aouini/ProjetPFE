@@ -39,13 +39,26 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
             @Param("validStates") List<EtatCommande> validStates
     );
 
-    @Query("SELECT c FROM Commande c " +
+
+    @Query("SELECT DISTINCT c FROM Commande c " +
             "LEFT JOIN FETCH c.adresseLivraison a " +
             "LEFT JOIN FETCH a.ville v " +
             "LEFT JOIN FETCH v.pays " +
+            "LEFT JOIN FETCH c.ligneCommandes lc " +
+            "LEFT JOIN FETCH lc.produit " +
             "WHERE c.idCommande = :id")
-    Optional<Commande> findByIdWithDetails(@Param("id") Long id);
+    Optional<Commande> findByIdWithLigneCommandes(@Param("id") Long id);
 
+    @Query("SELECT DISTINCT c FROM Commande c " +
+            "LEFT JOIN FETCH c.adresseLivraison a " +
+            "LEFT JOIN FETCH a.ville v " +
+            "LEFT JOIN FETCH v.pays " +
+            "LEFT JOIN FETCH c.ligneCommandePack lcp " +
+            "LEFT JOIN FETCH lcp.paquet p " +
+            "LEFT JOIN FETCH p.lignePaquets lp " +
+            "LEFT JOIN FETCH lp.produit " +
+            "WHERE c.idCommande = :orderId")
+    Optional<Commande> findByIdWithLigneCommandePack(@Param("orderId") Long orderId);
 
     @Query(value = "SELECT " +
             "CASE WHEN :groupBy = 'DAY' THEN TO_CHAR(c.date_commande, 'YYYY-MM-DD') " +
@@ -192,18 +205,20 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
             nativeQuery = true)
     Double getTotalRevenueBetweenDates(@Param("start") LocalDate start,
                                        @Param("end") LocalDate end);
+    // CommandeRepository.java
     @Query(value = """
     SELECT 
-        DATE(c.date_commande) as order_date,
-        COUNT(c.id_commande) as order_count
-    FROM commande c
-    WHERE c.date_commande BETWEEN ?1 AND ?2 
-    GROUP BY DATE(c.date_commande)
-    ORDER BY DATE(c.date_commande)
+        DATE(date_commande) as order_date,
+        COUNT(id_commande) as order_count
+    FROM commande
+    WHERE date_commande BETWEEN CAST(:startDate AS DATE) AND CAST(:endDate AS DATE)
+    GROUP BY DATE(date_commande)
+    ORDER BY DATE(date_commande)
 """, nativeQuery = true)
-    List<Object[]> findDailyOrdersBetweenDates(LocalDate startDate, LocalDate endDate);
+    List<Object[]> findDailyOrdersBetweenDates(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
-    // CommandeRepository.java
+
+
     @Query("SELECT c.etat, COUNT(c) FROM Commande c GROUP BY c.etat")
     List<Object[]> countOrdersByStatus();
 }

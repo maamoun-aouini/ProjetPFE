@@ -1,33 +1,38 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 
 public class DailyOrdersDTO {
-    private String date;  // Formatted as "MM/dd"
-    private Integer orders;
+    private LocalDate date;
+    private int orderCount;
 
-    public DailyOrdersDTO(LocalDate date, Integer orders) {
-        this.date = date.format(DateTimeFormatter.ofPattern("MM/dd"));
-        this.orders = orders;
+    public DailyOrdersDTO(LocalDate date, int orderCount) {
+        this.date = date;
+        this.orderCount = orderCount;
     }
 
-
-
-    // Getters and Setters
-    public String getDate() {
+    // Getters and setters
+    public LocalDate getDate() {
         return date;
     }
 
-    public void setDate(String date) {
+    public void setDate(LocalDate date) {
         this.date = date;
     }
 
-    public Integer getOrders() {
-        return orders;
+    public int getOrderCount() {
+        return orderCount;
     }
 
-    public void setOrders(Integer orders) {
-        this.orders = orders;
+    public void setOrderCount(int orderCount) {
+        this.orderCount = orderCount;
+    }
+
+    @Override
+    public String toString() {
+        return "DailyOrdersDTO{" +
+                "date=" + date +
+                ", orderCount=" + orderCount +
+                '}';
     }
 }

@@ -334,40 +334,7 @@ public class ClientService {
         }
         favorisRepository.deleteByClientIdAndProduitId(clientId, productId);
     }
-    public Commande createCommand(Long clientId, AddressResponse addressRequest, List<ProductRequest> productData) {
-        // Verify client exists
-        Client client = clientRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client not found"));
 
-        // Process delivery address using shared logic
-        Adresse deliveryAddress = processAddress(addressRequest);
-
-        // Create command with proper enum handling
-        Commande commande = new Commande();
-        commande.setType(TypeCommande.Produit);
-        commande.setClient(client);
-        commande.setAdresseLivraison(deliveryAddress);
-        commande.setDateCommande(new Date());
-        commande.setEtat(EtatCommande.EnCoursDeTraitement);
-
-        // Process command lines
-        List<LigneCommande> ligneCommands = productData.stream()
-                .map(product -> {
-                    Produits produit = produitRepository.findById(product.getId_product())
-                            .orElseThrow(() -> new RuntimeException("Product not found: " + product.getId_product()));
-
-                    LigneCommande lc = new LigneCommande();
-                    lc.setCommande(commande);
-                    lc.setProduit(produit);
-                    lc.setQuantite(product.getQuantité());
-                    return lc;
-                })
-                .toList();
-
-        // Save command and lines
-        commande.setLigneCommandes(ligneCommands);
-        return commandeRepository.save(commande);
-    }
     private Adresse processAddress(AddressResponse request) {
         // Normalize inputs
         String normalizedPays = request.getPays().trim().toLowerCase() ;

@@ -25,7 +25,7 @@ public class ProduitAdminDTO {
     private double prix;
     private double promotionPartenaire;
     private double promotionParticulier;
-    private Set<Categories> categories;
+    private Set<CategoryDTO> categories;
     private Double averageRating;
     private Set<String> photo = new HashSet<>();
 
@@ -45,7 +45,7 @@ public class ProduitAdminDTO {
         this.averageRating = averageRating;
     }
 
-    public ProduitAdminDTO(Long id, boolean disponibilite , String nom, String description, Set<String> photo, int quantite, double prix, double promotionPartenaire, double promotionParticulier, Set<Categories> categories, Double averageRating) {
+    public ProduitAdminDTO(Long id, boolean disponibilite , String nom, String description, Set<String> photo, int quantite, double prix, double promotionPartenaire, double promotionParticulier,  Set<CategoryDTO> categories, Double averageRating) {
         this.id = id;
         this.disponibilite = disponibilite;
         this.nom = nom;
@@ -55,16 +55,18 @@ public class ProduitAdminDTO {
         this.prix = prix;
         this.promotionPartenaire = promotionPartenaire;
         this.promotionParticulier = promotionParticulier;
+
         this.categories = categories;
         this.averageRating = averageRating;
 
     }
 
-    public Set<Categories> getCategories() {
+
+    public Set<CategoryDTO> getCategories() {
         return categories;
     }
 
-    public void setCategories(Set<Categories> categories) {
+    public void setCategories(Set<CategoryDTO> categories) {
         this.categories = categories;
     }
 

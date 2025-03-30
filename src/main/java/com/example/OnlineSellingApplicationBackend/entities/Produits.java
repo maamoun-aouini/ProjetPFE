@@ -27,7 +27,8 @@ public class Produits {
     @Column(name = "photo_path")
     private Set<String> photo = new HashSet<>();
     private int quantite;
-    private double prix;
+    @Column(nullable = false)
+    private Double prix;
     private boolean disponibilite;
 
     @OneToMany(mappedBy = "produit")
@@ -41,13 +42,13 @@ public class Produits {
 
     @OneToMany(mappedBy = "produit")
     private Set<LignePaquet> lignePaquets;
-
     @ManyToMany(cascade = {CascadeType.MERGE, CascadeType.PERSIST})
     @JoinTable(
-            name = "ProduitCategorie",
+            name = "produit_categorie", // ✅ Correction ici
             joinColumns = @JoinColumn(name = "produit_id"),
             inverseJoinColumns = @JoinColumn(name = "categorie_id")
     )
+
     private Set<Categories> categories;
     // Getters and setters
 
@@ -124,11 +125,11 @@ public class Produits {
         this.quantite = quantite;
     }
 
-    public double getPrix() {
+    public Double getPrix() {
         return prix;
     }
 
-    public void setPrix(double prix) {
+    public void setPrix(Double prix) {
         this.prix = prix;
     }
 

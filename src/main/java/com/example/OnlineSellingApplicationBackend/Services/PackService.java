@@ -10,6 +10,7 @@ import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -120,7 +121,7 @@ public class PackService {
 
         return buildPackResponse(pack);
     }
-
+    @Transactional
     public Map<String, Object> updatePack(Long id, PackRequest packRequest) throws IOException {
         Paquet pack = paquetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pack not found"));
@@ -149,27 +150,30 @@ public class PackService {
             pack.setPhotos(newPhotos);
         }
 
-        // Update products
+        // Update products - first remove all existing relationships
+        lignePaquetRepository.deleteByPaquetId(pack.getId());
+
+        // Create new relationships
         List<Produits> products = produitsRepository.findAllById(packRequest.getProductIds());
         if (products.size() != packRequest.getProductIds().size()) {
             throw new ResourceNotFoundException("Some products not found");
         }
 
-        // Remove old relationships
-        lignePaquetRepository.deleteAll(pack.getLignePaquets());
-
-        // Create new relationships
         List<LignePaquet> lines = new ArrayList<>();
         double totalValue = 0;
 
         for (int i = 0; i < products.size(); i++) {
             Produits product = products.get(i);
             int quantity = packRequest.getQuantities().get(i);
+
             LignePaquet line = new LignePaquet();
-            line.setProduit(product);
+            line.setPaquetId(pack.getId());
+            line.setProduitId(product.getId());
             line.setQuantite(quantity);
             line.setPaquet(pack);
+            line.setProduit(product);
             lines.add(line);
+
             totalValue += product.getPrix() * quantity;
         }
 
@@ -178,9 +182,7 @@ public class PackService {
         }
 
         lignePaquetRepository.saveAll(lines);
-        paquetRepository.save(pack);
-
-        return buildPackResponse(pack);
+        return buildPackResponse(paquetRepository.save(pack));
     }
 
     private Map<String, Object> buildPackResponse(Paquet pack) {

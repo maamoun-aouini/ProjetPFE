@@ -18,6 +18,7 @@ public class Commande {
     private Long idCommande;
 
     private Date dateCommande;
+    @Column(nullable = false) // Add this annotation
     private Double total;
 
 
@@ -32,8 +33,8 @@ public class Commande {
     @JoinColumn(name = "adresse_livraison_id")
     private Adresse adresseLivraison;
 
-    @OneToMany(mappedBy = "commande" , cascade = CascadeType.ALL)
-    private List<LigneCommande> ligneCommandes;
+    @OneToMany(mappedBy = "commande", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    private List<LigneCommande> ligneCommandes ;
 
     @OneToOne(mappedBy = "commande")
     private Paiement paiement;
@@ -41,8 +42,7 @@ public class Commande {
     @Enumerated(EnumType.STRING)
     private TypeCommande type;
 
-    @OneToMany(mappedBy = "commande")
-    @Fetch(FetchMode.SUBSELECT)
+    @OneToMany(mappedBy = "commande", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<LigneCommandPack> ligneCommandePack ;
 
     public List<LigneCommandPack> getLigneCommandePack() {
