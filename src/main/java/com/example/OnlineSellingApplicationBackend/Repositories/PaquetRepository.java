@@ -1,7 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.Repositories;
 
 import com.example.OnlineSellingApplicationBackend.entities.Paquet;
-import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,7 +10,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-
 public interface PaquetRepository extends JpaRepository<Paquet, Long> {
     @Query(value = "SELECT p.id AS paquet_id, pr.id AS produit_id, pr.name AS produit_name " +
             "FROM paquet p " +
@@ -22,6 +20,7 @@ public interface PaquetRepository extends JpaRepository<Paquet, Long> {
     @Query("SELECT p FROM Paquet p WHERE p.id = :id")
     Optional<Paquet> findById(@Param("id") Long id);
 
-
-
+    // New query to find available packs
+    @Query("SELECT p FROM Paquet p WHERE p.disponibility = true")
+    List<Paquet> findAllAvailable();
 }

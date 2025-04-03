@@ -1,19 +1,18 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
 public class PackRequest {
     private String nom;
-    private double prix;
+    private Double prix;
+    private List<MultipartFile> photos;
     private List<Long> productIds;
     private List<Integer> quantities;
-    @JsonIgnore // This prevents it from being included in JSON parsing
-    private List<MultipartFile> photos;
+    private Boolean disponibility;
 
-    // Getters and Setters
+    // Getters and setters
     public String getNom() {
         return nom;
     }
@@ -22,12 +21,20 @@ public class PackRequest {
         this.nom = nom;
     }
 
-    public double getPrix() {
+    public Double getPrix() {
         return prix;
     }
 
-    public void setPrix(double prix) {
+    public void setPrix(Double prix) {
         this.prix = prix;
+    }
+
+    public List<MultipartFile> getPhotos() {
+        return photos;
+    }
+
+    public void setPhotos(List<MultipartFile> photos) {
+        this.photos = photos;
     }
 
     public List<Long> getProductIds() {
@@ -46,11 +53,11 @@ public class PackRequest {
         this.quantities = quantities;
     }
 
-    public List<MultipartFile> getPhotos() {
-        return photos;
+    public Boolean getDisponibility() {
+        return disponibility;
     }
 
-    public void setPhotos(List<MultipartFile> photos) {
-        this.photos = photos;
+    public void setDisponibility(Boolean disponibility) {
+        this.disponibility = disponibility;
     }
 }

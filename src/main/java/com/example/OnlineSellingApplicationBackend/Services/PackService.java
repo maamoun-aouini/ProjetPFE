@@ -1,6 +1,7 @@
 package com.example.OnlineSellingApplicationBackend.Services;
 
 import com.example.OnlineSellingApplicationBackend.DTO.PackRequest;
+import com.example.OnlineSellingApplicationBackend.Repositories.LigneCommandPackRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.LignePaquetRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.PaquetRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ProduitsRepository;
@@ -25,12 +26,16 @@ public class PackService {
     private final PaquetRepository paquetRepository;
     private final ProduitsRepository produitsRepository;
     private final LignePaquetRepository lignePaquetRepository;
-
+    private final LigneCommandPackRepository ligneCommandPackRepository;
     @Autowired
-    public PackService(PaquetRepository paquetRepository, ProduitsRepository produitRepository, LignePaquetRepository lignePaquetRepository) {
+    public PackService(PaquetRepository paquetRepository,
+                       ProduitsRepository produitRepository,
+                       LignePaquetRepository lignePaquetRepository,
+                       LigneCommandPackRepository ligneCommandPackRepository) {
         this.paquetRepository = paquetRepository;
         this.produitsRepository = produitRepository;
         this.lignePaquetRepository = lignePaquetRepository;
+        this.ligneCommandPackRepository = ligneCommandPackRepository;
     }
 
     private String saveImage(MultipartFile file) throws IOException {
@@ -77,6 +82,7 @@ public class PackService {
         Paquet pack = new Paquet();
         pack.setNom(packRequest.getNom());
         pack.setPrix(packRequest.getPrix());
+        pack.setDisponibility(packRequest.getDisponibility() != null ? packRequest.getDisponibility() : true);
 
         if (packRequest.getPhotos() != null && !packRequest.getPhotos().isEmpty()) {
             Set<String> photoPaths = packRequest.getPhotos().stream()
@@ -121,6 +127,7 @@ public class PackService {
 
         return buildPackResponse(pack);
     }
+
     @Transactional
     public Map<String, Object> updatePack(Long id, PackRequest packRequest) throws IOException {
         Paquet pack = paquetRepository.findById(id)
@@ -135,6 +142,11 @@ public class PackService {
         // Update basic info
         pack.setNom(packRequest.getNom());
         pack.setPrix(packRequest.getPrix());
+
+        // Update disponibility if provided
+        if (packRequest.getDisponibility() != null) {
+            pack.setDisponibility(packRequest.getDisponibility());
+        }
 
         // Handle new photos
         if (packRequest.getPhotos() != null && !packRequest.getPhotos().isEmpty()) {
@@ -190,6 +202,7 @@ public class PackService {
         response.put("id", pack.getId());
         response.put("name", pack.getNom());
         response.put("price", pack.getPrix());
+        response.put("disponibility", pack.getDisponibility());
 
         response.put("photos", pack.getPhotos() != null ?
                 pack.getPhotos().stream()
@@ -220,20 +233,83 @@ public class PackService {
                 .collect(Collectors.toList());
     }
 
+    public List<Map<String, Object>> getAllAvailablePacks() {
+        return paquetRepository.findAllAvailable().stream()
+                .map(this::buildPackResponse)
+                .collect(Collectors.toList());
+    }
+
     public Map<String, Object> getPackById(Long id) {
         Paquet pack = paquetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pack not found"));
         return buildPackResponse(pack);
     }
 
-    public void deletePack(Long id) {
+    /**
+     * Check if a pack is used in any command
+     */
+    public boolean isPackUsedInOrders(Long packId) {
+        return ligneCommandPackRepository.existsByPaquetId(packId);
+    }
+
+    /**
+     * Handle pack deletion or deactivation
+     * @param id the pack ID
+     * @param forceDeactivate if true, deactivate even if not used in orders
+     * @return a map with information about the operation result
+     */
+    @Transactional
+    public Map<String, Object> handlePackDeletion(Long id, boolean forceDeactivate) {
         Paquet pack = paquetRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pack not found"));
 
-        // Delete associated photos
-        deleteExistingPhotos(pack.getPhotos());
+        boolean usedInOrders = isPackUsedInOrders(id);
+        Map<String, Object> result = new HashMap<>();
 
-        lignePaquetRepository.deleteAll(pack.getLignePaquets());
-        paquetRepository.delete(pack);
+        if (usedInOrders || forceDeactivate) {
+            // Just deactivate the pack
+            pack.setDisponibility(false);
+            paquetRepository.save(pack);
+
+            result.put("success", true);
+            result.put("action", "deactivated");
+            result.put("message", "Pack has been deactivated because it is used in orders");
+        } else {
+            // Physically delete the pack
+            deleteExistingPhotos(pack.getPhotos());
+            lignePaquetRepository.deleteAll(pack.getLignePaquets());
+            paquetRepository.delete(pack);
+
+            result.put("success", true);
+            result.put("action", "deleted");
+            result.put("message", "Pack has been permanently deleted");
+        }
+
+        return result;
+    }
+
+    /**
+     * This replaces the old delete method
+     */
+    public Map<String, Object> deletePack(Long id) {
+        return handlePackDeletion(id, false);
+    }
+
+    /**
+     * Toggle pack disponibility
+     */
+    public Map<String, Object> toggleDisponibility(Long id, boolean disponibility) {
+        Paquet pack = paquetRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Pack not found"));
+
+        pack.setDisponibility(disponibility);
+        paquetRepository.save(pack);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("disponibility", disponibility);
+        result.put("message", disponibility ? "Pack is now available" : "Pack is now unavailable");
+
+        return result;
     }
 }

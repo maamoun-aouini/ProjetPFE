@@ -57,7 +57,7 @@ public class UserDetailsServiceImpl implements UserDetailsService{
         if (user instanceof SuperAdmin) return "SUPERADMIN";
         if (user instanceof Admin) return "ADMIN";
         if (user instanceof Client) {
-            return ((Client) user).getType() == TypeClient.Partenaire
+            return ((Client) user).getType() == TypeClient.Partner
                     ? "USERPARTNER" : "USERSTANDARD";
         }
         throw new IllegalArgumentException("Unknown user type");

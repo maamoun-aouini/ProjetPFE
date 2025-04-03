@@ -18,7 +18,7 @@ public class Paquet {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // ✅ Correct placement
     private Long id;
-
+    private Boolean disponibility = true;
     private String nom;
     private double prix;
     @ElementCollection(fetch = FetchType.EAGER)
@@ -82,5 +82,12 @@ public class Paquet {
 
     public void setId(Long id) {
         this.id = id;
+    }
+    public Boolean getDisponibility() {
+        return disponibility;
+    }
+
+    public void setDisponibility(Boolean disponibility) {
+        this.disponibility = disponibility;
     }
 }

@@ -170,7 +170,7 @@ public class ClientService {
             client.setActif(updatedClient.isActif());
             client.setNom(updatedClient.getNom());
             client.setTel(updatedClient.getTel());
-            if(updatedClient.getType().equals(TypeClient.Particulier) || updatedClient.getType().equals(TypeClient.Partenaire)){
+            if(updatedClient.getType().equals(TypeClient.Individual) || updatedClient.getType().equals(TypeClient.Partner)){
                 client.setType(updatedClient.getType());
             }
             client.setType(updatedClient.getType());  // Use the input value

@@ -89,8 +89,8 @@ public class ClientController {
         }
         // Validate the client type
         if (updatedClient.getType() == null ||
-                (!updatedClient.getType().equals(TypeClient.Particulier) &&
-                        !updatedClient.getType().equals(TypeClient.Partenaire))) {
+                (!updatedClient.getType().equals(TypeClient.Individual) &&
+                        !updatedClient.getType().equals(TypeClient.Partner))) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid client type"));
         }
 

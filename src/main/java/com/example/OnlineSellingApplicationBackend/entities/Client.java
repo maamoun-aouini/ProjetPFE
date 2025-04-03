@@ -16,7 +16,7 @@ import java.util.Set;
 public class Client extends Utilisateur {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TypeClient type = TypeClient.Particulier;
+    private TypeClient type = TypeClient.Individual;
     private String description;
     private boolean actif = true;
     private String tel;

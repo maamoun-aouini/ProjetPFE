@@ -12,11 +12,11 @@ import lombok.AllArgsConstructor;
 public class ClientRegistrationRequest {
     private String nom;
     @Enumerated(    EnumType.STRING)  // Explicit enum mapping
-    private TypeClient type;    private String description;
+    private TypeClient type;
+    private String description;
     private String tel;
     private String profil;
     private boolean actif = true;
-
     @Email
     @NotBlank
     private String email;
