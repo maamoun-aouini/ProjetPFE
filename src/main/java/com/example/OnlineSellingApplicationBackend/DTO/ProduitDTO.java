@@ -6,8 +6,7 @@ import lombok.NoArgsConstructor;
 import java.util.Set;
 
 
-@AllArgsConstructor
-@NoArgsConstructor
+
 public class ProduitDTO {
     private Long id;
     private String nom;

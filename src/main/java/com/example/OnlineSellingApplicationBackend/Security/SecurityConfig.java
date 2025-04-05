@@ -42,23 +42,28 @@ public class SecurityConfig {
                 .exceptionHandling(eh -> eh.authenticationEntryPoint(authEntryPoint))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/clients/profile").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/all").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN") //hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers( "/api/test/ping").permitAll()
+                        .requestMatchers( "/api/test/**").permitAll()
                         .requestMatchers("/api/clients/register").permitAll()
+                        .requestMatchers("/api/clients/forgot-password").permitAll()
+                        .requestMatchers("/api/clients/verify-otp").permitAll()
+                        .requestMatchers("/api/clients/reset-password/{clientId}").permitAll()
 
                         // Client endpoints
                         .requestMatchers("/api/clients/stats/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/clients/{clientId}").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")// All other client endpoints require authentication
-
+                        .requestMatchers("/api/clients/profile/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/products").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/categories/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/clients/{clientId}/favorites/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/{clientId}/ratings/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
-                        .requestMatchers("/api/clients/{clientId}/password").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/clients/{clientId}").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")// All other client endpoints require authentication
+                        // In the SecurityFilterChain configuration:
+
                         .requestMatchers("/api/clients/**").authenticated() // All other client endpoints require authentication
 
                         // Admin endpoints
@@ -118,7 +123,8 @@ public class SecurityConfig {
                 "http://localhost:8081",
                 "http://192.168.1.111:8081",
                 "http://10.0.2.2:8081",
-                "exp://192.168.1.111:19000" // Expo default
+                "exp://192.168.1.111:19000",// Expo default
+                "http://localhost:5173"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(Arrays.asList("*"));

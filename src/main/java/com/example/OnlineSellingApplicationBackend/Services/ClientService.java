@@ -13,8 +13,11 @@ import java.util.Date;
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -58,6 +61,8 @@ public class ClientService {
     private NoteRepository noteRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private FileStorageService fileStorageService;
     /**
      * Register a new client account.
      */
@@ -246,16 +251,23 @@ public class ClientService {
     /**
      * Reset the client's password.
      */
-    public void resetPassword(Long clientId, String newPassword) {
-        Optional<Client> clientOptional = clientRepository.findById(clientId);
-        if (clientOptional.isPresent()) {
-            Client client = clientOptional.get();
-            client.setMotDePasse(passwordEncoder.encode(newPassword)); // Secure password storage
-            clientRepository.save(client);
-        } else {
-            throw new RuntimeException("Client not found");
-        }
+    public boolean emailExists(String email) {
+        return clientRepository.existsByEmail(email);
     }
+
+    public void resetPassword(Long clientId, String newPassword) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+
+        // Additional password validation can be added here
+        if (newPassword.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters");
+        }
+
+        client.setMotDePasse(passwordEncoder.encode(newPassword));
+        clientRepository.save(client);
+    }
+
     /**
      * Get all products.
      */
@@ -596,6 +608,61 @@ public class ClientService {
                     return new ClientInfoAdmin(clientInfoResponse, addressResponse);
                 })
                 .collect(Collectors.toList());
+    }
+
+    public Client getCurrentClient() {
+        // 1. Récupérer l'email de l'utilisateur connecté
+        String currentEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+
+
+
+        // 2. Vérifier que l'utilisateur est bien un Client (pas un Admin/SuperAdmin)
+        return clientRepository.findByEmail(currentEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'email: " + currentEmail));
+    }
+
+
+    @Transactional
+    public Client updateProfile(Long id, Client updatedClient, MultipartFile file) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client not found!"));
+
+        if (file != null && !file.isEmpty()) {
+            String fileName = fileStorageService.storeFile(file);
+            client.setProfil("/uploads/" + fileName);
+        }
+
+        client.setNom(updatedClient.getNom());
+        client.setEmail(updatedClient.getEmail());
+        client.setTel(updatedClient.getTel());
+
+        if (updatedClient.getMotDePasse() != null && !updatedClient.getMotDePasse().isEmpty()) {
+            client.setMotDePasse(passwordEncoder.encode(updatedClient.getMotDePasse()));
+        }
+        return clientRepository.save(client);
+
+    }
+
+    public ClientProfileWithAddressDTO getCurrentClientWithAddress() {
+        Client client = getCurrentClient();
+
+        AddressResponse addressResponse = client.getAdresse() != null
+                ? new AddressResponse(client.getAdresse())
+                : null;
+
+        return new ClientProfileWithAddressDTO(client.getNom(),client.getTel(), addressResponse);
+    }
+
+    public AddressResponse updateClientAddress(Long clientId, AddressResponse newAddress) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client not found"));
+
+        if (newAddress != null) {
+            handleAddressUpdate(client, newAddress);
+        }
+
+        Client updatedClient = clientRepository.save(client);
+        return new AddressResponse(updatedClient.getAdresse());
     }
 
 }
