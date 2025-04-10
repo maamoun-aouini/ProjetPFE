@@ -26,8 +26,8 @@ public class SalesController {
     @GetMapping
     public ResponseEntity<List<SalesDataDTO>> getSalesData(
             @RequestParam String range,
-            @RequestParam(required = false) String timezone) {
-        return ResponseEntity.ok(commandeService.getSalesData(range));
+            @RequestParam(required = false, defaultValue = "Europe/Paris") String timezone) {
+        return ResponseEntity.ok(commandeService.getSalesData(range, timezone));
     }
 
     // Nouvel endpoint pour les ventes quotidiennes

@@ -12,18 +12,18 @@ public class FormattedReclamationResponse {
     private String tel;
     private String email;
     public FormattedReclamationResponse(String clientName, String title, String description,
-                                        String date, Long commandeId, Long idReclamation,
-                                        String type, String status,String tel,String email){
+                                        String dateReclamation, Long commandeId, Long idReclamation,
+                                        String type, String status, String tel, String email) {
         this.clientName = clientName;
         this.title = title;
         this.description = description;
-        this.dateReclamation = dateReclamation;
+        this.dateReclamation = dateReclamation; // Now using the parameter
         this.commandeId = commandeId;
         this.idReclamation = idReclamation;
         this.type = type;
         this.status = status;
         this.tel = tel;
-        this.email=email;
+        this.email = email;
     }
 
     public String getEmail() {

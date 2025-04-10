@@ -20,6 +20,7 @@ public class Paquet {
     private Long id;
     private Boolean disponibility = true;
     private String nom;
+    private int quantite;
     private double prix;
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "pack_photos", joinColumns = @JoinColumn(name = "pack_id"))
@@ -89,5 +90,13 @@ public class Paquet {
 
     public void setDisponibility(Boolean disponibility) {
         this.disponibility = disponibility;
+    }
+
+    public int getQuantite() {
+        return quantite;
+    }
+
+    public void setQuantite(int quantite) {
+        this.quantite = quantite;
     }
 }

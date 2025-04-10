@@ -1,5 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 import com.example.OnlineSellingApplicationBackend.Repositories.ClientRepository;
+import com.example.OnlineSellingApplicationBackend.Services.CommandeService;
 import com.example.OnlineSellingApplicationBackend.Services.EmailService;
 import com.example.OnlineSellingApplicationBackend.Services.OtpService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -38,6 +39,8 @@ import org.springframework.web.multipart.MultipartFile;
 public class ClientController {
     @Autowired
     private ClientService clientService;
+    @Autowired
+    private CommandeService commandeService;
     @Autowired
     private JwtUtils jwtUtils;
     @Autowired
@@ -222,39 +225,6 @@ public class ClientController {
         return clientService.getProductsByCategoryWithSubcategories(categoryId);
     }
 
-    /**
-     * Add a product to favorites.
-     */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER')")
-    @PostMapping("/{clientId}/favorites/{productId}")
-    public ResponseEntity<Favoris> addProductToFavorites(@PathVariable Long clientId, @PathVariable Long productId) {
-        Favoris favoris = clientService.addProductToFavorites(clientId, productId);
-        return ResponseEntity.ok(favoris);
-    }
-
-    /**
-     * Get favorite products of a client.
-     */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER')")
-    @GetMapping("/{clientId}/favorites")
-    public ResponseEntity<List<FavoriteProductDTO>> getClientFavorites(@PathVariable Long clientId) {
-        List<FavoriteProductDTO> favoriteProducts = clientService.getClientFavorites(clientId);
-        return ResponseEntity.ok(favoriteProducts);
-    }
-
-    /**
-     * Remove a product from favorites.
-     */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER')")
-    @DeleteMapping("/{clientId}/favorites/{productId}")
-    public ResponseEntity<?> removeProductFromFavorites(@PathVariable Long clientId, @PathVariable Long productId) {
-        try {
-            clientService.removeProductFromFavorites(clientId, productId);
-            return ResponseEntity.noContent().build();
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
 
 
     /**
@@ -423,6 +393,15 @@ public class ClientController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("An error occurred while adding the address.");
         }
+    }
+
+    @GetMapping("/profile/orders")
+    public ResponseEntity<Map<String, List<ClientOrderDTO>>> getClientOrders() {
+        // Get authenticated client ID (you'll need to implement this based on your auth system)
+        Long clientId = clientService.getCurrentClient().getId(); // You need to implement this method
+
+        Map<String, List<ClientOrderDTO>> orders = commandeService.getClientOrdersGroupedByStatus(clientId);
+        return ResponseEntity.ok(orders);
     }
 
 

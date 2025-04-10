@@ -5,14 +5,13 @@ import java.util.Date;
 public class SalesDataDTO {
     private String period;
     private double total;
-    private Date startDate;
 
-    public Date getStartDate() {
-        return startDate;
+    public SalesDataDTO() {
     }
 
-    public void setStartDate(Date startDate) {
-        this.startDate = startDate;
+    public SalesDataDTO(String period, double total) {
+        this.period = period;
+        this.total = total;
     }
 
     public String getPeriod() {

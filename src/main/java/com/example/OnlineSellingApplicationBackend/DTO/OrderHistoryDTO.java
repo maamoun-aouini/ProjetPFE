@@ -1,5 +1,7 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
+import com.example.OnlineSellingApplicationBackend.entities.TypePaiment;
+
 import java.util.Date;
 import java.util.List;
 
@@ -8,6 +10,16 @@ public class OrderHistoryDTO {
     private Date orderDate;
     private String orderState;
     private List<LigneCommandeDTO> ligneCommandes;
+
+    private TypePaiment paymentType;
+
+    public TypePaiment getPaymentType() {
+        return paymentType;
+    }
+
+    public void setPaymentType(TypePaiment paymentType) {
+        this.paymentType = paymentType;
+    }
 
     public OrderHistoryDTO() {
 

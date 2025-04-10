@@ -17,6 +17,7 @@ public class Reclamation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idReclamation;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
     private String title;
     @Enumerated(EnumType.STRING)

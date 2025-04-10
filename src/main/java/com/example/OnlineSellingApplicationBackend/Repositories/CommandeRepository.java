@@ -60,57 +60,45 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
             "WHERE c.idCommande = :orderId")
     Optional<Commande> findByIdWithLigneCommandePack(@Param("orderId") Long orderId);
 
-    @Query(value = "SELECT " +
-            "CASE WHEN :groupBy = 'DAY' THEN TO_CHAR(c.date_commande, 'YYYY-MM-DD') " +
-            "ELSE TO_CHAR(c.date_commande, 'YYYY-MM') END as period, " +
-            "SUM(CASE " +
-            "    WHEN c.type = 'PACK' THEN (" +
-            "        SELECT COALESCE(SUM(lcp.quantite * p.prix), 0) " +
-            "        FROM ligne_command_pack lcp " +
-            "        JOIN paquet p ON lcp.paquet_id = p.id " +
-            "        WHERE lcp.commande_id = c.id_commande" +
-            "    ) " +
-            "    ELSE (" +
-            "        SELECT COALESCE(SUM(lc.quantite * p.prix), 0) " +
-            "        FROM ligne_commande lc " +
-            "        JOIN produits p ON lc.produit_id = p.id " +
-            "        WHERE lc.commande_id_commande = c.id_commande" +  // This is the correct join column
-            "    ) " +
-            "END) as total, " +
-            "MIN(c.date_commande) as startDate " +
-            "FROM commande c " +
-            "WHERE c.date_commande BETWEEN :startDate AND :endDate " +
-            "GROUP BY period " +
-            "ORDER BY period", nativeQuery = true)
-    List<Object[]> getSalesData(@Param("startDate") Date startDate,
-                                @Param("endDate") Date endDate,
-                                @Param("groupBy")  String groupBy);
     @Query(value = """
         SELECT 
-            TRIM(TO_CHAR(c.date_commande, 'Day')) AS day, 
-            SUM(CASE 
-                WHEN c.type = 'PACK' THEN (
-                    SELECT COALESCE(SUM(lcp.quantite * p.prix), 0)
-                    FROM ligne_command_pack lcp
-                    JOIN paquet p ON lcp.paquet_id = p.id
-                    WHERE lcp.commande_id = c.id_commande
-                )
-                ELSE (
-                    SELECT COALESCE(SUM(lc.quantite * p.prix), 0)
-                    FROM ligne_commande lc
-                    JOIN produits p ON lc.produit_id = p.id
-                    WHERE lc.commande_id_commande = c.id_commande
-                )
-            END) AS total
-        FROM Commande c 
-        WHERE c.date_commande BETWEEN ?1 AND ?2 
-        GROUP BY TO_CHAR(c.date_commande, 'Day') 
-        ORDER BY ARRAY_POSITION(ARRAY['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], 
-            TRIM(TO_CHAR(c.date_commande, 'Day')))
-        """, nativeQuery = true)
-    List<Object[]> findDailySalesBetweenDates(LocalDate startDate, LocalDate endDate);
+            CASE 
+                WHEN :groupBy = 'DAY' THEN TO_CHAR(c.date_commande, 'YYYY-MM-DD')
+                ELSE TO_CHAR(c.date_commande, 'YYYY-MM')
+            END AS period,
+            SUM(c.total) AS total
+        FROM commande c
+        WHERE c.date_commande BETWEEN :startDate AND :endDate
+          AND (
+                (c.type_paiment = 'EnLigne' AND c.etat IN ('Livree', 'PayeEtEnCoursDeTraitement', 'EnTransit', 'EnCoursDeLivraison'))
+                OR c.etat = 'LivreeEtPaye'
+          )
+        GROUP BY period
+        ORDER BY period
+    """, nativeQuery = true)
+    List<Object[]> getSalesData(
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate,
+            @Param("groupBy") String groupBy
+    );
 
-
+    @Query(value = """
+SELECT 
+    TO_CHAR(c.date_commande, 'Dy') AS day_of_week,
+    SUM(c.total) AS total_sales
+FROM commande c
+WHERE CAST(c.date_commande AS date) BETWEEN :startDate AND :endDate
+  AND (
+        (c.type_paiment = 'EnLigne' AND c.etat IN ('Livree', 'PayeEtEnCoursDeTraitement', 'EnTransit', 'EnCoursDeLivraison'))
+        OR c.etat = 'LivreeEtPaye'
+  )
+GROUP BY TO_CHAR(c.date_commande, 'Dy'), EXTRACT(DOW FROM c.date_commande)
+ORDER BY EXTRACT(DOW FROM c.date_commande)
+""", nativeQuery = true)
+    List<Object[]> findDailySalesBetweenDates(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
     @Query(value = """
     SELECT 
         category, 
@@ -144,81 +132,61 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
 
     // In CommandeRepository.java
     @Query(value = """
-    SELECT SUM(
-        CASE WHEN c.type = 'PACK' THEN 
-            (SELECT COALESCE(SUM(lcp.quantite * p.prix), 0) 
-            FROM ligne_command_pack lcp 
-            JOIN paquet p ON lcp.paquet_id = p.id 
-            WHERE lcp.commande_id = c.id_commande)
-        ELSE 
-            (SELECT COALESCE(SUM(lc.quantite * pr.prix), 0) 
-            FROM ligne_commande lc 
-            JOIN produits pr ON lc.produit_id = pr.id 
-            WHERE lc.commande_id_commande = c.id_commande)
-        END
-    )
-    FROM commande c""",
-            nativeQuery = true)
+    SELECT COALESCE(SUM(c.total), 0)
+    FROM commande c
+    WHERE (c.type_paiment = 'EnLigne' 
+           AND c.etat IN ('Livree', 'PayeEtEnCoursDeTraitement', 'EnTransit', 'EnCoursDeLivraison'))
+       OR c.etat = 'LivreeEtPaye'
+    """, nativeQuery = true)
     Double getTotalRevenue();
+
 
     // In CommandeRepository.java
     @Query(value = """
-    SELECT AVG(order_total) 
-    FROM (
-        SELECT 
-            CASE WHEN c.type = 'PACK' THEN 
-                (SELECT COALESCE(SUM(lcp.quantite * p.prix), 0) 
-                 FROM ligne_command_pack lcp 
-                 JOIN paquet p ON lcp.paquet_id = p.id 
-                 WHERE lcp.commande_id = c.id_commande)
-            ELSE 
-                (SELECT COALESCE(SUM(lc.quantite * pr.prix), 0) 
-                 FROM ligne_commande lc 
-                 JOIN produits pr ON lc.produit_id = pr.id 
-                 WHERE lc.commande_id_commande = c.id_commande)
-            END AS order_total
-        FROM commande c
-    ) AS order_totals
-    """,
-            nativeQuery = true)
+    SELECT AVG(c.total)
+    FROM commande c
+    WHERE (c.type_paiment = 'EnLigne' AND c.etat IN ('Livree', 'PayeEtEnCoursDeTraitement', 'EnTransit', 'EnCoursDeLivraison'))
+       OR c.etat = 'LivreeEtPaye'
+    """, nativeQuery = true)
     Double getAverageOrderValue();
+
 
     // Add these repository methods
     @Query("SELECT COUNT(c) FROM Commande c WHERE c.etat IN :states")
     long countByEtatIn(@Param("states") List<EtatCommande> states);
+
     @Query(value = """
-    SELECT SUM(
-        CASE WHEN c.type = 'PACK' THEN 
-            (SELECT COALESCE(SUM(lcp.quantite * p.prix), 0) 
-             FROM ligne_command_pack lcp 
-             JOIN paquet p ON lcp.paquet_id = p.id 
-             WHERE lcp.commande_id = c.id_commande)
-        ELSE 
-            (SELECT COALESCE(SUM(lc.quantite * pr.prix), 0) 
-             FROM ligne_commande lc 
-             JOIN produits pr ON lc.produit_id = pr.id 
-             WHERE lc.commande_id_commande = c.id_commande)
-        END
-    ) 
-    FROM commande c 
-    WHERE c.date_commande BETWEEN :start AND :end""",
-            nativeQuery = true)
-    Double getTotalRevenueBetweenDates(@Param("start") LocalDate start,
-                                       @Param("end") LocalDate end);
-    // CommandeRepository.java
+    SELECT COALESCE(SUM(c.total), 0)
+    FROM commande c
+    WHERE c.date_commande BETWEEN :start AND :end
+      AND (
+        (c.type_paiment = 'EnLigne' AND c.etat IN ('Livree', 'PayeEtEnCoursDeTraitement', 'EnTransit', 'EnCoursDeLivraison'))
+        OR c.etat = 'LivreeEtPaye'
+      )
+    """, nativeQuery = true)
+    Double getTotalRevenueBetweenDates(
+            @Param("start") LocalDate start,
+            @Param("end") LocalDate end
+    );
+
     @Query(value = """
     SELECT 
         DATE(date_commande) as order_date,
         COUNT(id_commande) as order_count
     FROM commande
-    WHERE date_commande BETWEEN CAST(:startDate AS DATE) AND CAST(:endDate AS DATE)
+    WHERE date_commande >= :startDate AND date_commande < :endDate
     GROUP BY DATE(date_commande)
     ORDER BY DATE(date_commande)
 """, nativeQuery = true)
-    List<Object[]> findDailyOrdersBetweenDates(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
-
+    List<Object[]> findDailyOrdersBetweenDates(
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate);
 
 
     @Query("SELECT c.etat, COUNT(c) FROM Commande c GROUP BY c.etat")
     List<Object[]> countOrdersByStatus();
+    @Query("SELECT c FROM Commande c " +
+            "WHERE c.client.id = :clientId " +
+            "ORDER BY c.dateCommande DESC")
+    List<Commande> findCommandesByClientIdOrderByDateCommandeDesc(@Param("clientId") Long clientId);
 }

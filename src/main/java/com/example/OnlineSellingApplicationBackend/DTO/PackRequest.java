@@ -11,6 +11,7 @@ public class PackRequest {
     private List<Long> productIds;
     private List<Integer> quantities;
     private Boolean disponibility;
+    private int quantite;
 
     // Getters and setters
     public String getNom() {
@@ -59,5 +60,13 @@ public class PackRequest {
 
     public void setDisponibility(Boolean disponibility) {
         this.disponibility = disponibility;
+    }
+
+    public int getQuantite() {
+        return quantite;
+    }
+
+    public void setQuantite(int quantite) {
+        this.quantite = quantite;
     }
 }

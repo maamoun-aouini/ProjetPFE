@@ -25,6 +25,9 @@ public class Commande {
     @Enumerated(EnumType.STRING)
     private EtatCommande etat;
 
+    @Enumerated(EnumType.STRING)
+    private TypePaiment type_paiment;
+
     @ManyToOne
     @JoinColumn(name = "client_id")
     private Client client;
@@ -122,5 +125,13 @@ public class Commande {
 
     public void setTotal(Double total) {
         this.total = total;
+    }
+
+    public TypePaiment getType_paiment() {
+        return type_paiment;
+    }
+
+    public void setType_paiment(TypePaiment type_paiment) {
+        this.type_paiment = type_paiment;
     }
 }

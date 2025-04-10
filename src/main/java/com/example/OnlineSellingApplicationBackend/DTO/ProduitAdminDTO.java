@@ -2,6 +2,7 @@ package com.example.OnlineSellingApplicationBackend.DTO;
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -25,9 +26,10 @@ public class ProduitAdminDTO {
     private double prix;
     private double promotionPartenaire;
     private double promotionParticulier;
+    @Nullable
     private Set<CategoryDTO> categories;
     private Double averageRating;
-    private Set<String> photo = new HashSet<>();
+    private Set<String> photos = new HashSet<>();
 
     public boolean isDisponibilite() {
         return disponibilite;
@@ -45,18 +47,18 @@ public class ProduitAdminDTO {
         this.averageRating = averageRating;
     }
 
-    public ProduitAdminDTO(Long id, boolean disponibilite , String nom, String description, Set<String> photo, int quantite, double prix, double promotionPartenaire, double promotionParticulier,  Set<CategoryDTO> categories, Double averageRating) {
+    public ProduitAdminDTO(Long id, boolean disponibilite , String nom, String description, Set<String> photos, int quantite, double prix, double promotionPartenaire, double promotionParticulier,  Set<CategoryDTO> categories, Double averageRating) {
         this.id = id;
         this.disponibilite = disponibilite;
         this.nom = nom;
         this.description = description;
-        this.photo = photo;
+        this.photos = photos;
         this.quantite = quantite;
         this.prix = prix;
         this.promotionPartenaire = promotionPartenaire;
         this.promotionParticulier = promotionParticulier;
-
         this.categories = categories;
+
         this.averageRating = averageRating;
 
     }
@@ -94,12 +96,12 @@ public class ProduitAdminDTO {
         this.description = description;
     }
 
-    public Set<String> getPhoto() {
-        return photo;
+    public Set<String> getPhotos() {
+        return photos;
     }
 
-    public void setPhoto(Set<String> photo) {
-        this.photo = photo;
+    public void setPhotos(Set<String> photos) {
+        this.photos = photos;
     }
 
     public int getQuantite() {

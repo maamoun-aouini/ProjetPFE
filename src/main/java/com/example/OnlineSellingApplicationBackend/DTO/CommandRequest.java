@@ -1,11 +1,14 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
+import com.example.OnlineSellingApplicationBackend.entities.TypePaiment;
+
 import java.util.List;
 
 public class CommandRequest {
     private AddressResponse address;
     private List<ProductRequest> products;
     private String TypeCommande;
+    private TypePaiment paymentType;
 
     public String getTypeCommande() {
         return TypeCommande;
@@ -29,6 +32,14 @@ public class CommandRequest {
 
     public void setProducts(List<ProductRequest> products) {
         this.products = products;
+    }
+
+    public TypePaiment getPaymentType() {
+        return paymentType;
+    }
+
+    public void setPaymentType(TypePaiment paymentType) {
+        this.paymentType = paymentType;
     }
 }
 

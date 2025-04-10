@@ -1,14 +1,18 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 
 import com.example.OnlineSellingApplicationBackend.DTO.*;
+import com.example.OnlineSellingApplicationBackend.Repositories.ClientRepository;
 import com.example.OnlineSellingApplicationBackend.Services.CommandeService;
 import com.example.OnlineSellingApplicationBackend.Services.PartnerService;
 import com.example.OnlineSellingApplicationBackend.Services.ClientService;
 
+import com.example.OnlineSellingApplicationBackend.entities.Client;
 import com.example.OnlineSellingApplicationBackend.entities.Commande;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -29,12 +33,15 @@ public class CommandeController {
     @Autowired
     private CommandeService commandeService;
 
+    @Autowired
+    private ClientRepository clientRepository;
+
 
     /** 🔹 Créer une commande Pack pour le partenaire */
     //@PreAuthorize("hasAnyRole('USERPARTNER')")
     @PostMapping("/{clientId}/Pack")
     public ResponseEntity<Commande> createPartnerCommand(@PathVariable Long clientId, @RequestBody CreateCommandeRequest commandRequest) {
-        Commande commande = partnerService.createCommand(clientId, commandRequest.getAddressRequest(), commandRequest.getPacks());
+        Commande commande = partnerService.createCommand(clientId, commandRequest.getAddressRequest(), commandRequest.getPacks(),commandRequest.getPaymentType() );
         return ResponseEntity.status(201).body(commande);
     }
     /**
@@ -45,7 +52,7 @@ public class CommandeController {
     public ResponseEntity<Commande> createClientCommand(
             @PathVariable Long clientId,
             @RequestBody CommandRequest commandRequest) {
-        Commande commande = commandeService.createCommand(clientId, commandRequest.getAddress(), commandRequest.getProducts());
+        Commande commande = commandeService.createCommand(clientId, commandRequest.getAddress(), commandRequest.getProducts(),commandRequest.getPaymentType() );
         return ResponseEntity.ok(commande);
     }
     /**
@@ -85,48 +92,35 @@ public class CommandeController {
     // In CommandeController.java
     @GetMapping("/orders/daily")
     public ResponseEntity<?> getDailyOrders(
-            @RequestParam String startDate,
-            @RequestParam String endDate) {
+            @RequestParam(required = false) String startDateParam,
+            @RequestParam(required = false) String endDateParam) {
 
         try {
-            // 🔥 Debug : Afficher les valeurs reçues avant nettoyage
-            System.out.println("Raw startDate: '" + startDate + "', Raw endDate: '" + endDate + "'");
+            LocalDate startDate;
+            LocalDate endDate;
 
-            // Nettoyer les espaces ou caractères cachés
-            startDate = startDate.trim();
-            endDate = endDate.trim();
-
-            // 🔥 Debug : Afficher après nettoyage
-            System.out.println("Cleaned startDate: '" + startDate + "', Cleaned endDate: '" + endDate + "'");
-
-            // Try to parse dates in multiple formats
-            LocalDate start;
-            LocalDate end;
-
-            try {
-                // First try ISO format (YYYY-MM-DD)
-                start = LocalDate.parse(startDate);
-                end = LocalDate.parse(endDate);
-            } catch (DateTimeParseException e) {
-                // Then try DD/MM/YYYY format
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d/M/yyyy");
-                start = LocalDate.parse(startDate, formatter);
-                end = LocalDate.parse(endDate, formatter);
+            if (startDateParam != null && endDateParam != null) {
+                // Use the provided dates
+                startDate = LocalDate.parse(startDateParam);
+                endDate = LocalDate.parse(endDateParam);
+            } else {
+                // Default to last 7 days
+                endDate = LocalDate.now();
+                startDate = endDate.minusDays(6);
             }
 
-            // 🔥 Debug : Log the converted dates
-            System.out.println("Parsed start date: " + start + ", Parsed end date: " + end);
+            System.out.println("Using date range: " + startDate + " to " + endDate);
 
-            List<DailyOrdersDTO> results = commandeService.getDailyOrders(start, end);
-
-            // 🔥 Debug : Log the result size
-            System.out.println("Result size: " + results.size());
+            List<DailyOrdersDTO> results = commandeService.getDailyOrders(startDate, endDate);
+            System.out.println("Query returned " + results.size() + " results");
 
             return ResponseEntity.ok(results);
 
+        } catch (DateTimeParseException e) {
+            return ResponseEntity.badRequest().body("Invalid date format. Please use yyyy-MM-dd");
         } catch (Exception e) {
-            System.err.println("Error processing request: " + e.getMessage());
-            e.printStackTrace(); // Add this to get full stack trace
+            System.err.println("Unexpected error: " + e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Error processing request: " + e.getMessage());
         }
     }
@@ -140,4 +134,8 @@ public class CommandeController {
     public ResponseEntity<Map<String, Object>> getOrderStats() {
         return ResponseEntity.ok(commandeService.getOrderStats());
     }
+
+
+
+
 }

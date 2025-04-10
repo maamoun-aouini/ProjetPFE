@@ -46,7 +46,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/clients/all").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN") //hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
-                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers( "/api/test/**").permitAll()
                         .requestMatchers("/api/clients/register").permitAll()
                         .requestMatchers("/api/clients/forgot-password").permitAll()
@@ -59,7 +58,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/clients/profile/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/products").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/categories/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
-                        .requestMatchers("/api/clients/{clientId}/favorites/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/{clientId}/ratings/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/clients/{clientId}").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")// All other client endpoints require authentication
                         // In the SecurityFilterChain configuration:
@@ -78,22 +76,27 @@ public class SecurityConfig {
                         .requestMatchers( "/api/superadmin/admins/**").hasAuthority("ROLE_SUPERADMIN")                        //.requestMatchers("/api/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
 
                         // Product endpoints
-                        .requestMatchers("/api/Products/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/Products/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
 
                         // Commande endpoints
-                        // .requestMatchers("/api/commandes/orders/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
-                        //.requestMatchers("/api/commandes/{orderId}/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
-                        //  .requestMatchers("/api/commandes/{clientId}/Pack").hasAuthority("ROLE_USERPARTNER")
-                        //.requestMatchers("/api/commandes/{clientId}").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
-                        .requestMatchers("/api/commandes/**").permitAll()
+                         .requestMatchers("/api/commandes/orders/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/commandes/{orderId}/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN","ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/commandes/{clientId}/Pack").hasAuthority("ROLE_USERPARTNER")
+                        .requestMatchers("/api/commandes/{clientId}").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/commandes/profile").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
 
                         // Categories endpoints
-                        .requestMatchers("/api/categories/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/categories/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
 
                         // Reclamation endpoints
                         .requestMatchers("/api/reclamations/clients/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
-                        .requestMatchers("/api/reclamations").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/reclamations/all").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
+                        .requestMatchers("/api/reclamations").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/reclamations/my-reclamations").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
                         .requestMatchers("/api/reclamations/**").authenticated()
+                        //Favorites endpoints
+                        .requestMatchers("/api/favorites/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+
 
                         // Fallback: All other requests require authentication
                         .anyRequest().authenticated()
@@ -122,6 +125,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:8081",
                 "http://192.168.1.111:8081",
+                "http://192.168.100.176:8081",
                 "http://10.0.2.2:8081",
                 "exp://192.168.1.111:19000",// Expo default
                 "http://localhost:5173"

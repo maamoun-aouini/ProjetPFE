@@ -25,7 +25,7 @@ public class Produits {
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "Produit_photos", joinColumns = @JoinColumn(name = "produit_id"))
     @Column(name = "photo_path")
-    private Set<String> photo = new HashSet<>();
+    private Set<String> photos = new HashSet<>();
     private int quantite;
     @Column(nullable = false)
     private Double prix;
@@ -109,12 +109,12 @@ public class Produits {
         this.selection = selection;
     }
 
-    public Set<String> getPhoto() {
-        return photo;
+    public Set<String> getPhotos() {
+        return photos;
     }
 
-    public void setPhoto(Set<String> photo) {
-        this.photo = photo;
+    public void setPhoto(Set<String> photos) {
+        this.photos = photos;
     }
 
     public int getQuantite() {

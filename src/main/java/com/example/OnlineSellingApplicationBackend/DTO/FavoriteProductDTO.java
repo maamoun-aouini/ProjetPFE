@@ -1,19 +1,36 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
-import java.util.Set;
+import java.util.List;
 
 public class FavoriteProductDTO {
     private Long clientId;
-    private Long produitId;
-    private String nom;
+    private Long productId;
+    private String name;
     private String description;
-    private double promotionPartenaire;
-    private double promotionParticulier;  //;
+    private double partnerPromotion;
+    private double individualPromotion;
     private String selection;
-    private Set<String> photo;
-    private double prix;
-    private boolean disponibilite;
+    private Object photos;  // Changed to Object to handle both single and multiple photos
+    private Double price;
+    private boolean availability;
 
+    // Constructor that matches your usage
+    public FavoriteProductDTO(Long clientId, Long productId, String name, String description,
+                              double partnerPromotion, double individualPromotion, String selection,
+                              Object photos, Double price, boolean availability) {
+        this.clientId = clientId;
+        this.productId = productId;
+        this.name = name;
+        this.description = description;
+        this.partnerPromotion = partnerPromotion;
+        this.individualPromotion = individualPromotion;
+        this.selection = selection;
+        this.photos = photos;
+        this.price = price;
+        this.availability = availability;
+    }
+
+    // Getters and setters
     public Long getClientId() {
         return clientId;
     }
@@ -22,20 +39,20 @@ public class FavoriteProductDTO {
         this.clientId = clientId;
     }
 
-    public Long getProduitId() {
-        return produitId;
+    public Long getProductId() {
+        return productId;
     }
 
-    public void setProduitId(Long produitId) {
-        this.produitId = produitId;
+    public void setProductId(Long productId) {
+        this.productId = productId;
     }
 
-    public String getNom() {
-        return nom;
+    public String getName() {
+        return name;
     }
 
-    public void setNom(String nom) {
-        this.nom = nom;
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getDescription() {
@@ -46,20 +63,20 @@ public class FavoriteProductDTO {
         this.description = description;
     }
 
-    public double getPromotionPartenaire() {
-        return promotionPartenaire;
+    public double getPartnerPromotion() {
+        return partnerPromotion;
     }
 
-    public void setPromotionPartenaire(double promotionPartenaire) {
-        this.promotionPartenaire = promotionPartenaire;
+    public void setPartnerPromotion(double partnerPromotion) {
+        this.partnerPromotion = partnerPromotion;
     }
 
-    public double getPromotionParticulier() {
-        return promotionParticulier;
+    public double getIndividualPromotion() {
+        return individualPromotion;
     }
 
-    public void setPromotionParticulier(double promotionParticulier) {
-        this.promotionParticulier = promotionParticulier;
+    public void setIndividualPromotion(double individualPromotion) {
+        this.individualPromotion = individualPromotion;
     }
 
     public String getSelection() {
@@ -70,42 +87,27 @@ public class FavoriteProductDTO {
         this.selection = selection;
     }
 
-
-    public Set<String> getPhoto() {
-        return photo;
+    public Object getPhotos() {
+        return photos;
     }
 
-    public void setPhoto(Set<String> photo) {
-        this.photo = photo;
+    public void setPhotos(Object photos) {
+        this.photos = photos;
     }
 
-    public double getPrix() {
-        return prix;
+    public Double getPrice() {
+        return price;
     }
 
-    public void setPrix(double prix) {
-        this.prix = prix;
+    public void setPrice(Double price) {
+        this.price = price;
     }
 
-    public boolean isDisponibilite() {
-        return disponibilite;
+    public boolean isAvailability() {
+        return availability;
     }
 
-    public void setDisponibilite(boolean disponibilite) {
-        this.disponibilite = disponibilite;
-    }
-
-    public FavoriteProductDTO(Long clientId, Long produitId, String nom, String description, double promotionPartenaire, double promotionParticulier, String selection, Set<String> photo, double prix, boolean disponibilite) {
-        this.clientId = clientId;
-        this.produitId = produitId;
-        this.nom = nom;
-        this.description = description;
-        this.promotionPartenaire = promotionPartenaire;
-        this.promotionParticulier = promotionParticulier;
-        this.selection = selection;
-        this.photo = photo;
-        this.prix = prix;
-        this.disponibilite = disponibilite;
+    public void setAvailability(boolean availability) {
+        this.availability = availability;
     }
 }
-

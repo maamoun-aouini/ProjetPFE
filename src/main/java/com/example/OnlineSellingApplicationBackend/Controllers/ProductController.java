@@ -1,4 +1,5 @@
-package com.example.OnlineSellingApplicationBackend.Controllers;
+
+        package com.example.OnlineSellingApplicationBackend.Controllers;
 import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Services.ProductService;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
@@ -26,7 +27,21 @@ public class ProductController {
         List<ProduitAdminDTO> products = productService.getAllProducts();
         return ResponseEntity.ok(products);
     }
-
+    @GetMapping("/available")
+    public ResponseEntity<List<ProduitAdminDTO>> getAllAvailableProducts() {
+        List<ProduitAdminDTO> products = productService.getAllAvailableProducts();
+        return ResponseEntity.ok(products);
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<ProduitAdminDTO> getProductDetails(@PathVariable Long id) {
+        ProduitAdminDTO product = productService.getProductDetails(id);
+        return ResponseEntity.ok(product);
+    }
+    @GetMapping("/recent")
+    public ResponseEntity<List<ProduitAdminDTO>> getRecentProducts() {
+        List<ProduitAdminDTO> products = productService.getRecentProducts();
+        return ResponseEntity.ok(products);
+    }
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> updateProductAndItsCategories(
             @PathVariable Long id,
@@ -72,4 +87,3 @@ public class ProductController {
         return ResponseEntity.ok(productService.getSalesData(range));
     }
 }
-

@@ -1,12 +1,11 @@
 package com.example.OnlineSellingApplicationBackend.Services;
 
-import com.example.OnlineSellingApplicationBackend.DTO.CategoryResponse;
-import com.example.OnlineSellingApplicationBackend.DTO.updateCategoryParent;
-import com.example.OnlineSellingApplicationBackend.DTO.ProduitCatDTO;
+import com.example.OnlineSellingApplicationBackend.DTO.*;
 
 import com.example.OnlineSellingApplicationBackend.Repositories.CategoriesRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ProduitsRepository;
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
+import com.example.OnlineSellingApplicationBackend.entities.Note;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
@@ -148,7 +147,16 @@ public class CategoriesService {
     public List<Categories> getCategoriesWithSubCategories() {
         return categoriesRepository.findAllRootCategoriesWithSubs();
     }
-    public List<ProduitCatDTO> findProductsByCategoryId(Long categoryId) {
+    private Double calculateAverageRating(Set<Note> notes) {
+        if (notes == null || notes.isEmpty()) {
+            return null;
+        }
+        return notes.stream()
+                .mapToInt(Note::getRating)
+                .average()
+                .orElse(0.0);
+    }
+    public List<ProduitAdminDTO> findProductsByCategoryId(Long categoryId) {
         // Get all category IDs including subcategories
         Set<Long> allCategoryIds = new HashSet<>();
         allCategoryIds.add(categoryId); // Add the parent category ID
@@ -158,7 +166,31 @@ public class CategoriesService {
         List<Produits> produits = produitsRepository.findByCategoriesIdIn(allCategoryIds);
 
         return produits.stream()
-                .map(ProduitCatDTO::new)
+                .map(produit -> {
+                    // Convert Categories entities to CategoryDTOs
+                    Set<CategoryDTO> categoryDTOs = produit.getCategories().stream()
+                            .map(category -> new CategoryDTO(
+                                    category.getId(),
+                                    category.getNom(),
+                                    category.getDescription(),
+                                    category.getPhoto()
+                            ))
+                            .collect(Collectors.toSet());
+
+                    return new ProduitAdminDTO(
+                            produit.getId(),
+                            produit.isDisponibilite(),
+                            produit.getNom(),
+                            produit.getDescription(),
+                            produit.getPhotos(),
+                            produit.getQuantite(),
+                            produit.getPrix(),
+                            produit.getPromotionPartenaire(),
+                            produit.getPromotionParticulier(),
+                            categoryDTOs, // Use DTOs instead of entities
+                            calculateAverageRating(produit.getNotes())
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
@@ -182,3 +214,4 @@ public class CategoriesService {
     }
 
 }
+

@@ -1,9 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 
-import com.example.OnlineSellingApplicationBackend.DTO.ProduitCatDTO;
-import com.example.OnlineSellingApplicationBackend.DTO.SubCategoryResponse;
-import com.example.OnlineSellingApplicationBackend.DTO.CategoryResponse;
-import com.example.OnlineSellingApplicationBackend.DTO.updateCategoryParent;
+import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Services.CategoriesService;
 import com.example.OnlineSellingApplicationBackend.entities.Categories;
 import jakarta.persistence.EntityNotFoundException;
@@ -171,8 +168,8 @@ public class CategoriesController {
         }
     }
     @GetMapping("/products/{categoryId}")
-    public ResponseEntity<List<ProduitCatDTO>> getProductsByCategory(@PathVariable Long categoryId) {
-        List<ProduitCatDTO> products = categoriesService.findProductsByCategoryId(categoryId);
+    public ResponseEntity<List<ProduitAdminDTO>> getProductsByCategory(@PathVariable Long categoryId) {
+        List<ProduitAdminDTO> products = categoriesService.findProductsByCategoryId(categoryId);
 
         if (products.isEmpty()) {
             return ResponseEntity.noContent().build(); // 204 No Content si aucun produit trouvé
@@ -182,3 +179,4 @@ public class CategoriesController {
     }
 
 }
+

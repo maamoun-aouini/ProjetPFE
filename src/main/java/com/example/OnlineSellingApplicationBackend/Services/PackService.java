@@ -83,6 +83,7 @@ public class PackService {
         pack.setNom(packRequest.getNom());
         pack.setPrix(packRequest.getPrix());
         pack.setDisponibility(packRequest.getDisponibility() != null ? packRequest.getDisponibility() : true);
+        pack.setQuantite(packRequest.getQuantite());
 
         if (packRequest.getPhotos() != null && !packRequest.getPhotos().isEmpty()) {
             Set<String> photoPaths = packRequest.getPhotos().stream()
@@ -142,6 +143,7 @@ public class PackService {
         // Update basic info
         pack.setNom(packRequest.getNom());
         pack.setPrix(packRequest.getPrix());
+        pack.setQuantite(packRequest.getQuantite());
 
         // Update disponibility if provided
         if (packRequest.getDisponibility() != null) {
@@ -203,6 +205,8 @@ public class PackService {
         response.put("name", pack.getNom());
         response.put("price", pack.getPrix());
         response.put("disponibility", pack.getDisponibility());
+
+        response.put("stock", pack.getQuantite());
 
         response.put("photos", pack.getPhotos() != null ?
                 pack.getPhotos().stream()

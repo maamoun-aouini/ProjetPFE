@@ -2,6 +2,7 @@ package com.example.OnlineSellingApplicationBackend.DTO;
 
 import com.example.OnlineSellingApplicationBackend.entities.EtatCommande;
 import com.example.OnlineSellingApplicationBackend.entities.TypeCommande;
+import com.example.OnlineSellingApplicationBackend.entities.TypePaiment;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.util.Date;
 
@@ -11,6 +12,8 @@ public class AdminOrderDTO {
     private String customer;
     private double total;
     private EtatCommande status;
+
+    private TypePaiment paymentType;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private Date date;
@@ -33,4 +36,12 @@ public class AdminOrderDTO {
 
     public Date getDate() { return date; }
     public void setDate(Date date) { this.date = date; }
+
+    public TypePaiment getPaymentType() {
+        return paymentType;
+    }
+
+    public void setPaymentType(TypePaiment paymentType) {
+        this.paymentType = paymentType;
+    }
 }

@@ -40,7 +40,7 @@ public class PartnerService {
     private AdresseRepository adresseRepository;
     @Autowired
     private NoteRepository noteRepository;
-    public Commande createCommand(Long clientId, AddressRequest addressRequest, List<PackSellingRequest> packData) {
+    public Commande createCommand(Long clientId, AddressRequest addressRequest, List<PackSellingRequest> packData, TypePaiment paymentType) {
         // Verify client exists
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Client not found"));
@@ -54,7 +54,14 @@ public class PartnerService {
         commande.setClient(client);
         commande.setAdresseLivraison(deliveryAddress);
         commande.setDateCommande(new Date());
-        commande.setEtat(EtatCommande.EnCoursDeTraitement);
+        commande.setType_paiment(paymentType);
+
+        // Set initial status based on payment type
+        if (paymentType == TypePaiment.EnLigne) {
+            commande.setEtat(EtatCommande.PayeEtEnCoursDeTraitement);
+        } else {
+            commande.setEtat(EtatCommande.EnCoursDeTraitement);
+        }
 
         // Process command lines
         List<LigneCommandPack> ligneCommands = packData.stream()

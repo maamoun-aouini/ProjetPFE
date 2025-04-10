@@ -278,73 +278,12 @@ public class ClientService {
                         produit.getId(),
                         produit.getNom(),
                         produit.getDescription(),
-                        produit.getPhoto(),
+                        produit.getPhotos(),
                         produit.getQuantite(),
                         produit.getPrix(),
                         produit.getCategories()
                 ))
                 .collect(Collectors.toList());
-    }    /**
-     * Add a product to the client's favorites.
-     */
-    public Favoris addProductToFavorites(Long clientId, Long productId) {
-        // Retrieve client and product by their IDs
-        Optional<Client> client = clientRepository.findById(clientId);
-        Optional<Produits> produit = produitRepository.findById(productId);
-        // Check if both exist
-        if (client.isPresent() && produit.isPresent()) {
-            Favoris favoris = new Favoris();
-
-            // Set composite key fields
-            favoris.setClientId(clientId);
-            favoris.setProduitId(productId);
-
-            // Set relationships
-            favoris.setClient(client.get());
-            favoris.setProduits(produit.get());
-
-            // Save and return the new Favoris entity
-            return favorisRepository.save(favoris);
-        }
-
-        // If client or product doesn't exist, throw an exception
-        throw new RuntimeException("Client or Product not found");
-    }
-
-    /**
-     * Get all favorite products of a client.
-     */
-    public List<FavoriteProductDTO> getClientFavorites(Long clientId) {
-        // Step 1: Fetch the product IDs from the 'favoris' table for the given client ID
-        List<Long> produitIds = favorisRepository.findProduitIdsByClientId(clientId);
-
-        // Step 2: Fetch the actual products from the 'produits' table using those IDs
-        List<FavoriteProductDTO> favoriteProducts = new ArrayList<>();
-        for (Long id : produitIds) {
-            Optional<Produits> produit = produitRepository.findById(id);
-            produit.ifPresent(p -> favoriteProducts.add(
-                    new FavoriteProductDTO(
-                            clientId,
-                            p.getId(),
-                            p.getNom(),
-                            p.getDescription(),
-                            p.getPromotionPartenaire(),
-                            p.getPromotionParticulier(),  // Assuming this exists in the 'produits' entity
-                            p.getSelection(),   // Assuming this exists in the 'produits' entity
-                            p.getPhoto(),       // Assuming this exists in the 'produits' entity
-                            p.getPrix(),
-                            p.isDisponibilite() // Assuming this exists in the 'produits' entity
-                    )
-            ));
-        }
-        return favoriteProducts;
-    }
-    @Transactional
-    public void removeProductFromFavorites(Long clientId, Long productId) {
-        if (!favorisRepository.existsByClientIdAndProduitId(clientId, productId)) {
-            throw new ResourceNotFoundException("Favorite not found for client " + clientId + " and product " + productId);
-        }
-        favorisRepository.deleteByClientIdAndProduitId(clientId, productId);
     }
 
     private Adresse processAddress(AddressResponse request) {
@@ -462,7 +401,7 @@ public class ClientService {
                         produit.getId(),
                         produit.getNom(),
                         produit.getDescription(),
-                        produit.getPhoto(),
+                        produit.getPhotos(),
                         produit.getQuantite(),
                         produit.getPrix(),
                         produit.getCategories()

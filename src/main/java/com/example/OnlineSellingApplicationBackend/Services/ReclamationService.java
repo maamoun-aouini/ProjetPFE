@@ -29,7 +29,6 @@ public class ReclamationService {
     @Autowired
     private CommandeRepository commandeRepository;
 
-    // Méthode pour ajouter une réclamation
     public ResponseEntity<?> ajouterReclamation(Long clientId, Reclamation reclamation) {
         Client client = clientRepository.findById(clientId).orElse(null);
 
@@ -65,6 +64,11 @@ public class ReclamationService {
         reclamation.setClient(client);
         reclamation.setCommande(commande);
 
+        // Set the date if it's not already set
+        if (reclamation.getDateReclamation() == null) {
+            reclamation.setDateReclamation(new java.util.Date());
+        }
+
         // Sauvegarde de la réclamation
         Reclamation savedReclamation = reclamationRepository.save(reclamation);
 
@@ -77,22 +81,22 @@ public class ReclamationService {
 
         for (Reclamation reclamation : reclamations) {
             String clientName = reclamation.getClient().getNom();
-            String title = reclamation.getTitle(); // Use title field
-            String description = reclamation.getDescription(); // Use description field
-            String date = reclamation.getDateReclamation() != null ? reclamation.getDateReclamation().toString() : "Date non disponible"; // Ensure proper date conversion
+            String title = reclamation.getTitle();
+            String description = reclamation.getDescription();
+            String date = reclamation.getDateReclamation() != null ? reclamation.getDateReclamation().toString() : "Date non disponible";
             Long commandeId = reclamation.getCommande() != null ? reclamation.getCommande().getIdCommande() : null;
-            String type = reclamation.getType().name();
-            String status = reclamation.getStatus().name();
+            String type = reclamation.getType() != null ? reclamation.getType().name() : "";
+            String status = reclamation.getStatus() != null ? reclamation.getStatus().name() : "";
             String tel = reclamation.getClient().getTel();
             String email = reclamation.getClient().getEmail();
-            // Créer l'objet DTO avec la description incluse
+
             FormattedReclamationResponse response = new FormattedReclamationResponse(
                     clientName,
                     title,
                     description,
                     date,
                     commandeId,
-                    reclamation.getIdReclamation(), // Add the ID
+                    reclamation.getIdReclamation(),
                     type,
                     status,
                     tel,
@@ -115,7 +119,6 @@ public class ReclamationService {
         }
 
         reclamationRepository.deleteById(id);
-
     }
 
     public FormattedReclamationResponse getReclamationById(Long id) {
@@ -128,13 +131,12 @@ public class ReclamationService {
                 reclamation.getDescription(),
                 reclamation.getDateReclamation() != null ? reclamation.getDateReclamation().toString() : "Date non disponible",
                 reclamation.getCommande() != null ? reclamation.getCommande().getIdCommande() : null,
-                reclamation.getIdReclamation(), // Add the ID
-                reclamation.getType().name(),
-                reclamation.getStatus().name(),
+                reclamation.getIdReclamation(),
+                reclamation.getType() != null ? reclamation.getType().name() : "",
+                reclamation.getStatus() != null ? reclamation.getStatus().name() : "",
                 reclamation.getClient().getTel(),
                 reclamation.getClient().getEmail()
         );
-
     }
 
     public ResponseEntity<?> updateReclamationStatus(Long id, StatusReclamation newStatus) {

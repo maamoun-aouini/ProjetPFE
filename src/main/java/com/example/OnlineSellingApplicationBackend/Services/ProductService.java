@@ -8,10 +8,11 @@ import com.example.OnlineSellingApplicationBackend.entities.Note;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,7 +36,6 @@ public class ProductService {
     private String saveProductImage(MultipartFile file) throws IOException {
         String uploadDir = Paths.get("uploads/products").toAbsolutePath().toString();
         Path uploadPath = Paths.get(uploadDir);
-
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
@@ -61,6 +61,47 @@ public class ProductService {
             }
         }
     }
+    @Transactional // Keep session open for lazy loading
+    public List<ProduitAdminDTO> getRecentProducts() {
+        int limit = 10; // or whatever number you want
+        Pageable pageable = PageRequest.of(0, limit);
+        return produitRepository.findRecentWithRatings(pageable).stream()
+                .map(produit -> {
+                    // Convert Categories entities to CategoryDTOs
+                    return new ProduitAdminDTO(
+                            produit.getId(),
+                            produit.isDisponibilite(),
+                            produit.getNom(),
+                            produit.getDescription(),
+                            produit.getPhotos(),
+                            produit.getQuantite(),
+                            produit.getPrix(),
+                            produit.getPromotionPartenaire(),
+                            produit.getPromotionParticulier(),
+                            null, // Use DTOs instead of entities
+                            calculateAverageRating(produit.getNotes())
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+    @Transactional // Keep session open for lazy loading
+    public ProduitAdminDTO getProductDetails(Long id) {
+        Produits produit= produitRepository.findProduct(id) ;
+        // Convert Categories entities to CategoryDTOs
+        return new ProduitAdminDTO(
+                produit.getId(),
+                produit.isDisponibilite(),
+                produit.getNom(),
+                produit.getDescription(),
+                produit.getPhotos(),
+                produit.getQuantite(),
+                produit.getPrix(),
+                produit.getPromotionPartenaire(),
+                produit.getPromotionParticulier(),
+                null, // Use DTOs instead of entities
+                calculateAverageRating(produit.getNotes())
+        );
+    }
     // Add categories to a product
     @Transactional // Keep session open for lazy loading
     public List<ProduitAdminDTO> getAllProducts() {
@@ -81,7 +122,37 @@ public class ProductService {
                             produit.isDisponibilite(),
                             produit.getNom(),
                             produit.getDescription(),
-                            produit.getPhoto(),
+                            produit.getPhotos(),
+                            produit.getQuantite(),
+                            produit.getPrix(),
+                            produit.getPromotionPartenaire(),
+                            produit.getPromotionParticulier(),
+                            categoryDTOs, // Use DTOs instead of entities
+                            calculateAverageRating(produit.getNotes())
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+    @Transactional // Keep session open for lazy loading
+    public List<ProduitAdminDTO> getAllAvailableProducts() {
+        return produitRepository.findAvailableProducts().stream()
+                .map(produit -> {
+                    // Convert Categories entities to CategoryDTOs
+                    Set<CategoryDTO> categoryDTOs = produit.getCategories().stream()
+                            .map(category -> new CategoryDTO(
+                                    category.getId(),
+                                    category.getNom(),
+                                    category.getDescription(),
+                                    category.getPhoto()
+                            ))
+                            .collect(Collectors.toSet());
+
+                    return new ProduitAdminDTO(
+                            produit.getId(),
+                            produit.isDisponibilite(),
+                            produit.getNom(),
+                            produit.getDescription(),
+                            produit.getPhotos(),
                             produit.getQuantite(),
                             produit.getPrix(),
                             produit.getPromotionPartenaire(),
@@ -139,7 +210,7 @@ public class ProductService {
                             .collect(Collectors.toSet());
 
                     // Add new photos to existing ones
-                    Set<String> updatedPhotos = new HashSet<>(product.getPhoto());
+                    Set<String> updatedPhotos = new HashSet<>(product.getPhotos());
                     updatedPhotos.addAll(newPhotoPaths);
                     product.setPhoto(updatedPhotos);
                 }
