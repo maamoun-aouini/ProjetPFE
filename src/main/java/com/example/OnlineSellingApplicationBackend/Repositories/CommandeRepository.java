@@ -29,10 +29,12 @@ public interface CommandeRepository extends JpaRepository<Commande, Long> {
 
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END " +
             "FROM Commande c " +
-            "JOIN c.ligneCommandes lc " +
             "WHERE c.client.id = :clientId " +
-            "AND lc.produit.id = :productId " +
-            "AND c.etat IN :validStates")
+            "AND c.etat IN :validStates " +
+            "AND (" +
+            "   EXISTS (SELECT 1 FROM c.ligneCommandes lc WHERE lc.produit.id = :productId) OR " +
+            "   EXISTS (SELECT 1 FROM c.ligneCommandePack lcp JOIN lcp.paquet p JOIN p.lignePaquets lp WHERE lp.produit.id = :productId)" +
+            ")")
     boolean existsValidPurchaseForRating(
             @Param("clientId") Long clientId,
             @Param("productId") Long productId,

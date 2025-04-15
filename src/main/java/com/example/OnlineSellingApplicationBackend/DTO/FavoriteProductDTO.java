@@ -1,6 +1,8 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FavoriteProductDTO {
     private Long clientId;
@@ -10,14 +12,14 @@ public class FavoriteProductDTO {
     private double partnerPromotion;
     private double individualPromotion;
     private String selection;
-    private Object photos;  // Changed to Object to handle both single and multiple photos
+    private Set<String> photos = new HashSet<>();  // Changed to Object to handle both single and multiple photos
     private Double price;
     private boolean availability;
-
+    private Double averageRating;
     // Constructor that matches your usage
     public FavoriteProductDTO(Long clientId, Long productId, String name, String description,
                               double partnerPromotion, double individualPromotion, String selection,
-                              Object photos, Double price, boolean availability) {
+                              Set<String> photos, Double price, boolean availability,Double averageRating) {
         this.clientId = clientId;
         this.productId = productId;
         this.name = name;
@@ -28,6 +30,8 @@ public class FavoriteProductDTO {
         this.photos = photos;
         this.price = price;
         this.availability = availability;
+        this.averageRating = averageRating;
+
     }
 
     // Getters and setters
@@ -87,11 +91,11 @@ public class FavoriteProductDTO {
         this.selection = selection;
     }
 
-    public Object getPhotos() {
+    public Set<String> getPhotos() {
         return photos;
     }
 
-    public void setPhotos(Object photos) {
+    public void setPhotos(Set<String> photos) {
         this.photos = photos;
     }
 
@@ -101,6 +105,14 @@ public class FavoriteProductDTO {
 
     public void setPrice(Double price) {
         this.price = price;
+    }
+
+    public Double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(Double averageRating) {
+        this.averageRating = averageRating;
     }
 
     public boolean isAvailability() {

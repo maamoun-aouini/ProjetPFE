@@ -40,8 +40,8 @@ public class CommandeController {
     /** 🔹 Créer une commande Pack pour le partenaire */
     //@PreAuthorize("hasAnyRole('USERPARTNER')")
     @PostMapping("/{clientId}/Pack")
-    public ResponseEntity<Commande> createPartnerCommand(@PathVariable Long clientId, @RequestBody CreateCommandeRequest commandRequest) {
-        Commande commande = partnerService.createCommand(clientId, commandRequest.getAddressRequest(), commandRequest.getPacks(),commandRequest.getPaymentType() );
+    public ResponseEntity<Commande> createPartnerCommand(@RequestBody CreateCommandeRequest commandRequest) {
+        Commande commande = partnerService.createCommand(commandRequest.getClientId(), commandRequest.getAddressRequest(), commandRequest.getPacks(),commandRequest.getPaymentType() );
         return ResponseEntity.status(201).body(commande);
     }
     /**

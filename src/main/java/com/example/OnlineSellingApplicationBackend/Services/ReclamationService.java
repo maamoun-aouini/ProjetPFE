@@ -4,10 +4,7 @@ import com.example.OnlineSellingApplicationBackend.DTO.FormattedReclamationRespo
 import com.example.OnlineSellingApplicationBackend.Repositories.ClientRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.CommandeRepository;
 import com.example.OnlineSellingApplicationBackend.Repositories.ReclamationRepository;
-import com.example.OnlineSellingApplicationBackend.entities.Client;
-import com.example.OnlineSellingApplicationBackend.entities.Commande;
-import com.example.OnlineSellingApplicationBackend.entities.Reclamation;
-import com.example.OnlineSellingApplicationBackend.entities.StatusReclamation;
+import com.example.OnlineSellingApplicationBackend.entities.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.http.HttpStatus;
@@ -28,7 +25,8 @@ public class ReclamationService {
 
     @Autowired
     private CommandeRepository commandeRepository;
-
+    @Autowired
+    private NotificationService notificationService;
     public ResponseEntity<?> ajouterReclamation(Long clientId, Reclamation reclamation) {
         Client client = clientRepository.findById(clientId).orElse(null);
 
@@ -71,7 +69,13 @@ public class ReclamationService {
 
         // Sauvegarde de la réclamation
         Reclamation savedReclamation = reclamationRepository.save(reclamation);
-
+        notificationService.sendNotification(
+                "New Complaint Filed",
+                "A new complaint has been filed regarding order #" + reclamation.getCommande().getIdCommande(),
+                Notification.NotificationType.NEW_COMPLAINT,
+                "admin",
+                savedReclamation.getIdReclamation()
+        );
         return ResponseEntity.ok(savedReclamation);
     }
 
@@ -149,6 +153,11 @@ public class ReclamationService {
 
         reclamation.setStatus(newStatus);
         reclamationRepository.save(reclamation);
+        notificationService.notifyComplaintStatusChange(
+                id,
+                reclamation.getClient().getId().toString(),
+                newStatus.toString()
+        );
         return ResponseEntity.ok(reclamation);
     }
 }

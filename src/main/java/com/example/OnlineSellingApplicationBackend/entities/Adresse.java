@@ -16,7 +16,6 @@ public class Adresse {
     private String rue;
     private String numero;
     private String indication;
-
     @ManyToOne
     @JoinColumn(name = "ville_id")
     private Ville ville;

@@ -1,4 +1,5 @@
 package com.example.OnlineSellingApplicationBackend.Repositories;
+
 import com.example.OnlineSellingApplicationBackend.DTO.AddressResponse;
 import com.example.OnlineSellingApplicationBackend.entities.Adresse;
 import com.example.OnlineSellingApplicationBackend.entities.Ville;
@@ -9,8 +10,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+
 @Repository
-// AdresseRepository.java
 public interface AdresseRepository extends JpaRepository<Adresse, Long> {
     @Query("SELECT a FROM Adresse a " +
             "WHERE LOWER(a.rue) = LOWER(:rue) " +
@@ -35,6 +36,7 @@ public interface AdresseRepository extends JpaRepository<Adresse, Long> {
             @Param("indication") String indication,
             @Param("ville") Ville ville
     );
+
     @Query("SELECT new com.example.OnlineSellingApplicationBackend.DTO.AddressResponse(a) " +
             "FROM Adresse a " +
             "WHERE LOWER(a.rue) = LOWER(:rue) " +
@@ -49,10 +51,10 @@ public interface AdresseRepository extends JpaRepository<Adresse, Long> {
             @Param("paysNom") String paysNom,
             @Param("indication") String indication
     );
-@Query("SELECT new com.example.OnlineSellingApplicationBackend.DTO.AddressResponse(a) FROM Adresse a where (a.ville) = : vlId")
-List<AddressResponse> findAdressByVille(
-        @Param("vlId") Long vlId
-);
+
+    @Query("SELECT new com.example.OnlineSellingApplicationBackend.DTO.AddressResponse(a) FROM Adresse a WHERE a.ville.id = :vlId")
+    List<AddressResponse> findAdressByVille(@Param("vlId") Long vlId);
+
     @Query("SELECT COUNT(a) FROM Adresse a WHERE a.ville = :ville")
     long countByVille(@Param("ville") Ville ville);
 }

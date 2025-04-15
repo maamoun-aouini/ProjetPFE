@@ -9,27 +9,18 @@ public class OrderHistoryDTO {
     private Long orderId;
     private Date orderDate;
     private String orderState;
-    private List<LigneCommandeDTO> ligneCommandes;
-
     private TypePaiment paymentType;
-
-    public TypePaiment getPaymentType() {
-        return paymentType;
-    }
-
-    public void setPaymentType(TypePaiment paymentType) {
-        this.paymentType = paymentType;
-    }
-
-    public OrderHistoryDTO() {
-
-    }
+    private List<LigneCommandeDTO> ligneCommandes;
+    private double total;
 
     public static class LigneCommandeDTO {
         private Long productId;
         private String productName;
         private int quantity;
+        private double originalPrice;
+        private double appliedPrice;
 
+        // Getters and setters
         public Long getProductId() {
             return productId;
         }
@@ -54,15 +45,24 @@ public class OrderHistoryDTO {
             this.quantity = quantity;
         }
 
+        public double getOriginalPrice() {
+            return originalPrice;
+        }
+
+        public void setOriginalPrice(double originalPrice) {
+            this.originalPrice = originalPrice;
+        }
+
+        public double getAppliedPrice() {
+            return appliedPrice;
+        }
+
+        public void setAppliedPrice(double appliedPrice) {
+            this.appliedPrice = appliedPrice;
+        }
     }
 
-    public OrderHistoryDTO(Long orderId, Date orderDate, String orderState, List<LigneCommandeDTO> ligneCommandes) {
-        this.orderId = orderId;
-        this.orderDate = orderDate;
-        this.orderState = orderState;
-        this.ligneCommandes = ligneCommandes;
-    }
-
+    // Getters and setters
     public Long getOrderId() {
         return orderId;
     }
@@ -87,11 +87,27 @@ public class OrderHistoryDTO {
         this.orderState = orderState;
     }
 
+    public TypePaiment getPaymentType() {
+        return paymentType;
+    }
+
+    public void setPaymentType(TypePaiment paymentType) {
+        this.paymentType = paymentType;
+    }
+
     public List<LigneCommandeDTO> getLigneCommandes() {
         return ligneCommandes;
     }
 
     public void setLigneCommandes(List<LigneCommandeDTO> ligneCommandes) {
         this.ligneCommandes = ligneCommandes;
+    }
+
+    public double getTotal() {
+        return total;
+    }
+
+    public void setTotal(double total) {
+        this.total = total;
     }
 }

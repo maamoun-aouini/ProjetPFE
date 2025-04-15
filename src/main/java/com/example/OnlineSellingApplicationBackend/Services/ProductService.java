@@ -28,7 +28,8 @@ public class ProductService {
 
     @Autowired
     private CategoriesRepository categoriesRepository;
-
+    @Autowired
+    private NotificationService notificationService;
     @Autowired
     private ProduitsRepository produitsRepository;
     @Autowired
@@ -375,9 +376,13 @@ public class ProductService {
 
             product.setCategories(finalCategories);
         }
-
+        Produits result = produitRepository.save(product);
         // Save and return
-        return produitRepository.save(product);
+        notificationService.notifyNewProduct(
+                result.getId(),
+                result.getNom()
+        );
+        return result;
     }
 
     public List<CategoryDistributionDTO> getCategoryDistribution() {
@@ -430,6 +435,23 @@ public class ProductService {
                 })
                 .collect(Collectors.toList());
     }
+    // In ProductService.java, add this method:
+    public List<ReviewDTO> getProductReviews(Long productId) {
+        Produits product = produitRepository.findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+        return product.getNotes().stream()
+                .map(note -> {
+                    ReviewDTO dto = new ReviewDTO();
+                    dto.setClientId(note.getClient().getId());
+                    dto.setClientName(note.getClient().getNom());
+                    dto.setProductId(productId);
+                    dto.setRating(note.getRating());
+                    dto.setCommentaire(note.getCommentaire());
+                    dto.setDate(note.getDate()); // Assuming you have a date field, otherwise omit
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
 }
 

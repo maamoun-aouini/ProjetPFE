@@ -86,4 +86,15 @@ public class ProductController {
             @RequestParam(required = false) String timezone) {
         return ResponseEntity.ok(productService.getSalesData(range));
     }
+    // In ProductController.java, add this endpoint:
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<?> getProductReviews(@PathVariable Long id) {
+        try {
+            List<ReviewDTO> reviews = productService.getProductReviews(id);
+            return ResponseEntity.ok(reviews);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
 }

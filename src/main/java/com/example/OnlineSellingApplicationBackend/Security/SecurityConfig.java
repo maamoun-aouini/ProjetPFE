@@ -69,7 +69,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/**").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/admin/profile").hasAnyAuthority("ROLE_ADMIN")
                         .requestMatchers("/api/packs/**").hasAnyAuthority("ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
-
                         // SuperAdmin endpoints
                         .requestMatchers( "/api/superadmin/dashboard-stats").hasAnyAuthority("ROLE_ADMIN", "ROLE_SUPERADMIN")
                         .requestMatchers("/api/superadmin/**").hasAuthority("ROLE_SUPERADMIN")
@@ -96,8 +95,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/reclamations/**").authenticated()
                         //Favorites endpoints
                         .requestMatchers("/api/favorites/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
-
-
+                        .requestMatchers("/api/cart/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
+                         .requestMatchers("/api/rate/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER")
+                        .requestMatchers("/api/partnerApplication/**").hasAnyAuthority("ROLE_USERSTANDARD", "ROLE_USERPARTNER", "ROLE_ADMIN", "ROLE_SUPERADMIN")
                         // Fallback: All other requests require authentication
                         .anyRequest().authenticated()
                 )
@@ -124,7 +124,8 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:8081",
-                "http://192.168.1.111:8081",
+                "http://192.168.159.1:8081",
+                "http://192.168.29.1:8081",
                 "http://192.168.100.176:8081",
                 "http://10.0.2.2:8081",
                 "exp://192.168.1.111:19000",// Expo default

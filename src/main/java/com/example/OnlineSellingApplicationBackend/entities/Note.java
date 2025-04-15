@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
@@ -24,7 +26,14 @@ public class Note {
 
     private int rating; // Example: Rating field
     private String commentaire; // Example: Comment field
+    private LocalDateTime date;
 
+    public void setRating(int rating) {
+        this.rating = rating;
+        if (this.date == null) {
+            this.date = LocalDateTime.now();
+        }
+    }
     public Client getClient() {
         return client;
     }
@@ -45,9 +54,6 @@ public class Note {
         return rating;
     }
 
-    public void setRating(int rating) {
-        this.rating = rating;
-    }
 
     public String getCommentaire() {
         return commentaire;
@@ -55,5 +61,13 @@ public class Note {
 
     public void setCommentaire(String commentaire) {
         this.commentaire = commentaire;
+    }
+
+    public LocalDateTime getDate() {
+        return date;
+    }
+
+    public void setDate(LocalDateTime date) {
+        this.date = date;
     }
 }

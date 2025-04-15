@@ -1,5 +1,6 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
 import com.example.OnlineSellingApplicationBackend.Repositories.ClientRepository;
+import com.example.OnlineSellingApplicationBackend.Security.JwtUtils;
 import com.example.OnlineSellingApplicationBackend.Services.CommandeService;
 import com.example.OnlineSellingApplicationBackend.Services.EmailService;
 import com.example.OnlineSellingApplicationBackend.Services.OtpService;
@@ -12,7 +13,6 @@ import org.springframework.security.core.GrantedAuthority;
 
 import com.example.OnlineSellingApplicationBackend.Exeptions.RatingNotAllowedException;
 import com.example.OnlineSellingApplicationBackend.Security.CustomUserDetails;
-import com.example.OnlineSellingApplicationBackend.Security.JwtUtils;
 import com.example.OnlineSellingApplicationBackend.Security.UserDetailsServiceImpl;
 import com.example.OnlineSellingApplicationBackend.Services.ClientService;
 import com.example.OnlineSellingApplicationBackend.entities.*;
@@ -31,7 +31,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -224,50 +223,6 @@ public class ClientController {
     public List<ProduitDTO> getProductsByCategoryAndSubcategories(@PathVariable Long categoryId) {
         return clientService.getProductsByCategoryWithSubcategories(categoryId);
     }
-
-
-
-    /**
-     * Add a product rating.
-     */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER')")
-    @PostMapping("/{clientId}/ratings")
-    public ResponseEntity<?> addRating(@PathVariable Long clientId, @RequestBody RatingRequest request) {
-        try {
-            Note createdRating = clientService.addRating(request);
-            return ResponseEntity.ok(createdRating);
-        } catch (RatingNotAllowedException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    /**
-     * Update a product rating.
-     */
-    //@PreAuthorize("hasAnyRole('USERSTANDARD', 'USERPARTNER')")
-    @PutMapping("/{clientId}/ratings/{productId}")
-    public ResponseEntity<?> updateRating(
-            @PathVariable Long clientId,
-            @PathVariable Long productId,
-            @RequestBody RatingUpdateRequest request) {
-        try {
-            Note updatedRating = clientService.updateRating(clientId, productId, request);
-            return ResponseEntity.ok(updatedRating);
-        } catch (RatingNotAllowedException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        } catch (ResourceNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/rating/{clientId}/{productId}")
-    public ResponseEntity<?> getRating(@PathVariable Long clientId, @PathVariable Long productId) {
-        Note note = clientService.getRating(clientId, productId);
-        return ResponseEntity.ok(note);
-    }
-
     // UserController.java
     @GetMapping("/stats/growth")
     public ResponseEntity<List<UserGrowthDTO>> getUserGrowth() {
@@ -394,7 +349,6 @@ public class ClientController {
                     .body("An error occurred while adding the address.");
         }
     }
-
     @GetMapping("/profile/orders")
     public ResponseEntity<Map<String, List<ClientOrderDTO>>> getClientOrders() {
         // Get authenticated client ID (you'll need to implement this based on your auth system)
@@ -403,7 +357,4 @@ public class ClientController {
         Map<String, List<ClientOrderDTO>> orders = commandeService.getClientOrdersGroupedByStatus(clientId);
         return ResponseEntity.ok(orders);
     }
-
-
-
 }

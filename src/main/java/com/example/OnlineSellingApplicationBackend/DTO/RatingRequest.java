@@ -1,11 +1,13 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
 
+import lombok.Data;
 
+@Data
 public class RatingRequest {
     private Long clientId;
     private Long productId;
     private int rating;
-    private String comment;
+    private String comment; // Note this field name matches frontend
 
     public Long getClientId() {
         return clientId;

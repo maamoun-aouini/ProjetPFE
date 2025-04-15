@@ -4,6 +4,7 @@ import com.example.OnlineSellingApplicationBackend.DTO.FavoriteProductDTO;
 import com.example.OnlineSellingApplicationBackend.Repositories.*;
 import com.example.OnlineSellingApplicationBackend.entities.Client;
 import com.example.OnlineSellingApplicationBackend.entities.Favoris;
+import com.example.OnlineSellingApplicationBackend.entities.Note;
 import com.example.OnlineSellingApplicationBackend.entities.Produits;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,17 +51,6 @@ public class FavoriteService {
         for (Long id : produitIds) {
             Optional<Produits> produit = produitRepository.findById(id);
             produit.ifPresent(p -> {
-                Object photoData = p.getPhotos();
-                List<String> processedPhotos = new ArrayList<>();
-
-                if (photoData instanceof Set<?>) {
-                    processedPhotos = ((Set<String>) photoData).stream()
-                            .map(photo -> photo.startsWith("http") ? photo : photo)
-                            .collect(Collectors.toList());
-                } else if (photoData instanceof String) {
-                    processedPhotos.add((String) photoData);
-                }
-
                 favoriteProducts.add(new FavoriteProductDTO(
                         clientId,
                         p.getId(),
@@ -69,15 +59,24 @@ public class FavoriteService {
                         p.getPromotionPartenaire(),
                         p.getPromotionParticulier(),
                         p.getSelection(),
-                        processedPhotos.isEmpty() ? photoData : processedPhotos,
+                        p.getPhotos(),
                         p.getPrix(),
-                        p.isDisponibilite()
+                        p.isDisponibilite(),
+                        calculateAverageRating(p.getNotes())
                 ));
             });
         }
         return favoriteProducts;
     }
-
+    private Double calculateAverageRating(Set<Note> notes) {
+        if (notes == null || notes.isEmpty()) {
+            return null;
+        }
+        return notes.stream()
+                .mapToInt(Note::getRating)
+                .average()
+                .orElse(0.0);
+    }
     @Transactional
     public void removeProductFromFavorites(Long clientId, Long productId) {
         if (!favorisRepository.existsByClientIdAndProduitId(clientId, productId)) {

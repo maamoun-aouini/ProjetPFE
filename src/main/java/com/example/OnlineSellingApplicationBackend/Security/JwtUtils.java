@@ -2,6 +2,7 @@ package com.example.OnlineSellingApplicationBackend.Security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -10,11 +11,10 @@ import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import org.slf4j.Logger;
 
 @Component
 public class JwtUtils {
-    private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);  // Add this line
+    private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
 
     @Value("${jwt.secret}")
     private String secret;
@@ -26,29 +26,112 @@ public class JwtUtils {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
 
+    /**
+     * Generate a new JWT token
+     * @param username Username or email
+     * @param roles List of user roles
+     * @param userId User ID
+     * @return JWT token string
+     */
     public String generateToken(String username, List<String> roles, Long userId) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("roles", roles)
                 .claim("userId", userId)
-                .setIssuer("your-issuer") // Fixed issuer
-                .setAudience("your-audience") // Intended audience
-                .setId(UUID.randomUUID().toString()) // Unique JWT ID
+                .setIssuer("your-issuer")
+                .setAudience("your-audience")
+                .setId(UUID.randomUUID().toString())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(getSigningKey())
                 .compact();
     }
+
+    /**
+     * Generate a token with client type information
+     * @param username Username or email
+     * @param roles List of user roles
+     * @param userId User ID
+     * @param clientType Client type (PARTNER or REGULAR)
+     * @return JWT token string
+     */
+    public String generateTokenWithClientType(String username, List<String> roles, Long userId, String clientType) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("roles", roles)
+                .claim("userId", userId)
+                .claim("type", clientType)
+                .setIssuer("your-issuer")
+                .setAudience("your-audience")
+                .setId(UUID.randomUUID().toString())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                .signWith(getSigningKey())
+                .compact();
+    }
+
+    /**
+     * Extract all claims from a token
+     * @param token JWT token string
+     * @return Claims object
+     */
     public Claims extractClaims(String token) {
         return Jwts.parser()
                 .setSigningKey(getSigningKey())
                 .parseClaimsJws(token)
                 .getBody();
     }
+
+    /**
+     * Get username from token
+     * @param token JWT token string
+     * @return Username
+     */
     public String getUsernameFromToken(String token) {
         return extractClaims(token).getSubject();
     }
-    // JwtUtils.java
+
+    /**
+     * Get client type from JWT token
+     * @param token JWT token string
+     * @return Client type string (PARTNER or REGULAR)
+     */
+    public String getClientTypeFromToken(String token) {
+        Claims claims = extractClaims(token);
+
+        // Return client type, defaulting to "REGULAR" if not found
+        return claims.get("type", String.class) != null
+                ? claims.get("type", String.class)
+                : "REGULAR";
+    }
+
+    /**
+     * Get client ID from JWT token
+     * @param token JWT token string
+     * @return Client ID
+     */
+    public Long getClientIdFromToken(String token) {
+        Claims claims = extractClaims(token);
+
+        // First try to get from userId claim
+        if (claims.get("userId") != null) {
+            return Long.valueOf(claims.get("userId").toString());
+        }
+
+        // Fallback to subject if it's numeric
+        try {
+            return Long.parseLong(claims.getSubject());
+        } catch (NumberFormatException e) {
+            logger.warn("Subject is not a valid client ID: {}", claims.getSubject());
+            return null;
+        }
+    }
+
+    /**
+     * Validate JWT token
+     * @param token JWT token string
+     * @return true if valid, false otherwise
+     */
     public boolean validateToken(String token) {
         try {
             Jwts.parser().setSigningKey(getSigningKey()).parseClaimsJws(token);

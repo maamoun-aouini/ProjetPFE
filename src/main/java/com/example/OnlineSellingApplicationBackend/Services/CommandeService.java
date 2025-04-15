@@ -1,5 +1,4 @@
 package com.example.OnlineSellingApplicationBackend.Services;
-
 import com.example.OnlineSellingApplicationBackend.DTO.*;
 import com.example.OnlineSellingApplicationBackend.Repositories.*;
 import com.example.OnlineSellingApplicationBackend.entities.*;
@@ -7,6 +6,7 @@ import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.time.format.DateTimeFormatter;
@@ -14,105 +14,95 @@ import java.time.temporal.TemporalAdjuster;
 import java.time.temporal.TemporalAdjusters;
 import java.util.*;
 import java.util.stream.Collectors;
-
 @Service
 public class CommandeService {
     @Autowired
     private CategoriesRepository categoriesRepository;
-
     @Autowired
     private ClientRepository clientRepository;
-
     @Autowired
     private EntrepriseRepository entrepriseRepository;
-
     @Autowired
     private ProduitsRepository produitRepository;
-
     @Autowired
     private PaquetRepository paquetRepository;
-
     @Autowired
     private FavorisRepository favorisRepository;
-
     @Autowired
     private CommandeRepository commandeRepository;
-
     @Autowired
     private LigneCommandeRepository ligneCommandeRepository;
-
     @Autowired
     private PaysRepository paysRepository;
-
     @Autowired
     private VilleRepository villeRepository;
-
     @Autowired
     private AdresseRepository adresseRepository;
-
     @Autowired
     private NoteRepository noteRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
-
-    public Commande createCommand(Long clientId, AddressResponse addressRequest, List<ProductRequest> productData , TypePaiment paymentType) {
+    @Autowired
+    private CartService cartService;
+    @Autowired
+    private NotificationService notificationService;
+    @Transactional
+    public Commande createCommand(Long clientId, AddressResponse addressRequest, List<ProductRequest> productData, TypePaiment paymentType) {
         // Verify client exists
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Client not found"));
-
         // Process delivery address using shared logic
         Adresse deliveryAddress = processAddress(addressRequest);
-
         // Create command with proper enum handling
         Commande commande = new Commande();
         commande.setType(TypeCommande.Produit);
         commande.setClient(client);
         commande.setAdresseLivraison(deliveryAddress);
         commande.setDateCommande(new Date());
-
-
         commande.setType_paiment(paymentType);
-
         if (paymentType == TypePaiment.EnLigne) {
             commande.setEtat(EtatCommande.PayeEtEnCoursDeTraitement);
         } else {
             commande.setEtat(EtatCommande.EnCoursDeTraitement);
         }
-
-        // Process command lines
-        List<LigneCommande> ligneCommands = productData.stream()
-                .map(product -> {
-                    Produits produit = produitRepository.findById(product.getId_product())
-                            .orElseThrow(() -> new RuntimeException("Product not found: " + product.getId_product()));
-
-                    LigneCommande lc = new LigneCommande();
-                    lc.setCommande(commande);
-                    lc.setProduit(produit);
-                    lc.setQuantite(product.getQuantité());
-                    return lc;
-                })
-                .toList();
-
+        // Process command lines but don't update product quantities
+        // (because they were already reserved in the cart)
+        List<LigneCommande> ligneCommands = new ArrayList<>();
+        for (ProductRequest product : productData) {
+            Produits produit = produitRepository.findById(product.getId_product())
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + product.getId_product()));
+            // We no longer need to check stock or update quantities here
+            // since items are already reserved in the cart
+            // Create line item
+            LigneCommande lc = new LigneCommande();
+            lc.setCommande(commande);
+            lc.setProduit(produit);
+            lc.setQuantite(product.getQuantité());
+            ligneCommands.add(lc);
+        }
         // Set command lines
         commande.setLigneCommandes(ligneCommands);
-
+         Client Buyer=clientRepository.findById(clientId).orElseThrow(() -> new RuntimeException("client not found"));
         // Calculate and set total
         double total = ligneCommands.stream()
-                .mapToDouble(lc -> lc.getProduit().getPrix() * lc.getQuantite())
+                .mapToDouble(lc -> lc.getProduit().getPrix() * ( 1.0 - ((Buyer.getType().equals(TypeClient.Partner) && lc.getProduit().getPromotionPartenaire() !=0) ? lc.getProduit().getPromotionPartenaire() : (Buyer.getType().equals(TypeClient.Individual) && lc.getProduit().getPromotionParticulier() != 0) ? lc.getProduit().getPromotionParticulier() : 0 )) * lc.getQuantite())
                 .sum();
-        commande.setTotal(total);  // Make sure this is set before saving
-
-        return commandeRepository.save(commande);
+        commande.setTotal(total);
+        // Save the command
+        Commande savedCommande = commandeRepository.save(commande);
+        // Clear the cart after successful order creation
+        cartService.clearCartAfterOrder(clientId);
+        notificationService.notifyNewOrder(savedCommande.getIdCommande(), clientId.toString());
+        return savedCommande;
     }
-
     private Adresse processAddress(AddressResponse request) {
         // Normalize inputs
-        String normalizedPays = request.getPays().trim().toLowerCase();
-        String normalizedVille = request.getVille().trim().toLowerCase();
-        String normalizedRue = request.getRue().trim().toLowerCase();
-        String normalizedNumero = request.getNumero().trim().toLowerCase();
-        String normalizedIndication = request.getIndication().trim().toLowerCase();
+        String normalizedPays = request.getPays() != null ? request.getPays().trim().toLowerCase() : "";
+        String normalizedVille = request.getVille() != null ? request.getVille().trim().toLowerCase() : "";
+        String normalizedRue = request.getRue() != null ? request.getRue().trim().toLowerCase() : "";
+        String normalizedNumero = request.getNumero() != null ? request.getNumero().trim().toLowerCase() : "";
+        String normalizedIndication = request.getIndication() != null ?
+                request.getIndication().trim().toLowerCase() : "";
         // Check existing address using DTO projection
         List<AddressResponse> existingAddresses = adresseRepository.findExistingAddress(
                 normalizedRue,
@@ -121,14 +111,11 @@ public class CommandeService {
                 normalizedPays,
                 normalizedIndication
         );
-
         if (!existingAddresses.isEmpty()) {
             // Always return the first one consistently (or add logic to pick the most relevant)
             return adresseRepository.findById(existingAddresses.get(0).getId())
                     .orElseThrow(() -> new RuntimeException("Address not found"));
         }
-
-
         // Create new address components with proper persistence
         List<Pays> existingPays = paysRepository.findByNomIgnoreCase(normalizedPays);
         Pays pays;
@@ -138,7 +125,6 @@ public class CommandeService {
             pays = new Pays(normalizedPays);
             pays = paysRepository.save(pays);
         }
-
         // Process Ville
         List<Ville> existingVilles = villeRepository.findByNomIgnoreCaseAndPays(normalizedVille, pays);
         Ville ville;
@@ -155,12 +141,10 @@ public class CommandeService {
         newAdresse.setVille(ville);
         return adresseRepository.save(newAdresse);
     }
-
     public List<Commande> getOrderHistory(Long clientId) {
         // Fetch and return all commandes for the client
         return commandeRepository.findCommandesByClientId(clientId);
     }
-
     public List<OrderHistoryDTO> mapCommandeToDTO(List<Commande> commandes) {
         List<OrderHistoryDTO> dtoList = new ArrayList<>();
 
@@ -170,7 +154,6 @@ public class CommandeService {
             dto.setOrderDate(commande.getDateCommande());
             dto.setOrderState(commande.getEtat().toString());
             dto.setPaymentType(commande.getType_paiment());
-
             List<OrderHistoryDTO.LigneCommandeDTO> ligneCommandes = new ArrayList<>();
             for (LigneCommande ligneCommande : commande.getLigneCommandes()) {
                 OrderHistoryDTO.LigneCommandeDTO ligneDTO = new OrderHistoryDTO.LigneCommandeDTO();
@@ -207,23 +190,20 @@ public class CommandeService {
             return dto;
         }).collect(Collectors.toList());
     }
+
     public void updateOrderStatus(Long orderId, String newStatus) {
         Commande commande = commandeRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         EtatCommande newEtat = EtatCommande.valueOf(newStatus);
-
         // Validate if the new status is allowed for this payment type
         validateStatusTransition(commande.getType_paiment(), commande.getEtat(), newEtat);
-
         commande.setEtat(newEtat);
         commandeRepository.save(commande);
+        notificationService.notifyOrderStatusChange(orderId, commande.getClient().getId().toString(), newStatus);
     }
-
     private void validateStatusTransition(TypePaiment paymentType, EtatCommande currentStatus, EtatCommande newStatus) {
         // Get valid statuses based on payment type
         List<EtatCommande> validStatuses;
-
         if (paymentType == TypePaiment.EnLigne) {
             validStatuses = List.of(
                     EtatCommande.PayeEtEnCoursDeTraitement,
@@ -244,17 +224,14 @@ public class CommandeService {
                     EtatCommande.EnRetour
             );
         }
-
         if (!validStatuses.contains(newStatus)) {
             throw new IllegalStateException("Invalid status transition for the payment type " + paymentType);
         }
     }
-
     public CommandeDetailDTO getOrderDetails(Long orderId) {
         // Fetch the order with line items and address info
         Commande commande = commandeRepository.findByIdWithLigneCommandes(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-
         // Fetch the order with line packs separately
         Optional<Commande> commandeWithPacks = commandeRepository.findByIdWithLigneCommandePack(orderId);
 
@@ -267,27 +244,22 @@ public class CommandeService {
                 commande.getLigneCommandePack().forEach(lcp -> lcp.setCommande(commande));
             }
         });
-
         return mapToCommandeDetailDTO(commande);
     }
-
     private CommandeDetailDTO mapToCommandeDetailDTO(Commande commande) {
         CommandeDetailDTO dto = new CommandeDetailDTO();
-
         // Basic info
         dto.setOrderId(commande.getIdCommande());
         dto.setOrderType(commande.getType().toString());
         dto.setOrderDate(commande.getDateCommande());
         dto.setStatus(commande.getEtat().toString());
         dto.setPaymentType(commande.getType_paiment());
-
         // Client info
         CommandeDetailDTO.ClientInfoDTO clientInfo = new CommandeDetailDTO.ClientInfoDTO();
         clientInfo.setName(commande.getClient().getNom());
         clientInfo.setEmail(commande.getClient().getEmail());
         clientInfo.setTel(commande.getClient().getTel());
         dto.setClient(clientInfo);
-
         // Address info
         CommandeDetailDTO.AddressDTO addressDTO = new CommandeDetailDTO.AddressDTO();
         Adresse adresse = commande.getAdresseLivraison();
@@ -298,10 +270,8 @@ public class CommandeService {
             addressDTO.setCountry(adresse.getVille().getPays().getNom());
         }
         dto.setDeliveryAddress(addressDTO);
-
         // Items mapping
         List<CommandeDetailDTO.OrderItemDTO> items = new ArrayList<>();
-
         // Process products
         if (commande.getLigneCommandes() != null) {
             commande.getLigneCommandes().forEach(lc -> {
@@ -313,7 +283,6 @@ public class CommandeService {
             });
         }
 
-        // Process packs
         // Process packs
         if (commande.getLigneCommandePack() != null) {
             // Use a Set to avoid duplicates or group by pack ID
@@ -351,7 +320,6 @@ public class CommandeService {
         return dto;
     }
 
-
     public List<SalesDataDTO> getSalesData(String range, String timezone) {
         ZoneId zone = ZoneId.of(timezone);
         ZonedDateTime now = ZonedDateTime.now(zone);
@@ -381,16 +349,13 @@ public class CommandeService {
                 groupBy = "DAY";
             }
         }
-
         List<Object[]> results = commandeRepository.getSalesData(
                 Date.from(startDate.toInstant()),
                 Date.from(now.toInstant()),
                 groupBy
         );
-
         // Create a map to ensure unique periods
         Map<String, SalesDataDTO> periodMap = new LinkedHashMap<>();
-
         // Generate all expected periods in the range
         ZonedDateTime current = startDate;
         while (!current.isAfter(now)) {
@@ -426,8 +391,6 @@ public class CommandeService {
         return new ArrayList<>(periodMap.values());
     }
 
-
-
     public List<DailySalesDTO> getDailySales(LocalDate startDate, LocalDate endDate) {
         return commandeRepository.findDailySalesBetweenDates(startDate, endDate)
                 .stream()
@@ -460,11 +423,11 @@ public class CommandeService {
 
         return metrics;
     }
-    // In CommandeService.java
+
     private double calculateConversionRate() {
         // Get total completed orders
         long successfulOrders = commandeRepository.countByEtatIn(
-                List.of(EtatCommande.Livree,EtatCommande.LivreeEtPaye)
+                List.of(EtatCommande.Livree, EtatCommande.LivreeEtPaye)
         );
 
         // Get total visitors/carts (you'll need to implement this)
@@ -566,9 +529,6 @@ public class CommandeService {
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 
-
-
-    // CommandeService.java
     public List<StatusDistributionDTO> getOrderStatusDistribution() {
         return commandeRepository.countOrdersByStatus().stream()
                 .map(result -> new StatusDistributionDTO(
@@ -577,7 +537,7 @@ public class CommandeService {
                 ))
                 .collect(Collectors.toList());
     }
-    // CommandeService.java
+
     public Map<String, Object> getOrderStats() {
         Map<String, Object> stats = new HashMap<>();
 
@@ -615,11 +575,8 @@ public class CommandeService {
             dto.setOrderDate(commande.getDateCommande());
             dto.setPaymentType(commande.getType_paiment());
 
-
             if (commande.getEtat() == EtatCommande.Livree || commande.getEtat() == EtatCommande.LivreeEtPaye) {
                 completedOrders.add(dto);
-
-
             } else {
                 // Set human-readable delivery status for ongoing orders
                 dto.setDeliveryStatus(getDeliveryStatusText(commande.getEtat()));
@@ -650,7 +607,6 @@ public class CommandeService {
                 return "Processing";
         }
     }
-
 
     public List<CategorySalesDTO> getSalesByCategory() {
         return commandeRepository.findSalesByCategory()

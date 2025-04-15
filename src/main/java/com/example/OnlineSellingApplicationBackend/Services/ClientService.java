@@ -420,31 +420,6 @@ public class ClientService {
             }
         }
     }
-    public Note addRating(RatingRequest request) {
-        // Validate client and product exist
-        Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new ResourceNotFoundException("Client not found"));
-
-        Produits product = produitRepository.findById(request.getProductId())
-                .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
-
-        // Check purchase validity
-        if (!hasValidPurchase(client, product)) {
-            throw new RatingNotAllowedException(
-                    "Client hasn't purchased this product or order isn't in valid state"
-            );
-        }
-
-        // Create new rating
-        Note rating = new Note();
-        rating.setClient(client);
-        rating.setProduit(product);
-        rating.setRating(request.getRating());
-        rating.setCommentaire(request.getComment());
-
-        return noteRepository.save(rating);
-    }
-
     private boolean hasValidPurchase(Client client, Produits product) {
         // Check if client has any commandes that:
         // - Are in Livree or EnRetour state
@@ -455,28 +430,7 @@ public class ClientService {
                 List.of(EtatCommande.Livree, EtatCommande.EnRetour)
         );
     }
-    public Note updateRating(Long clientId, Long productId, RatingUpdateRequest request) {
-        // Find existing rating
-        Note existingRating = noteRepository.findByClientIdAndProduitId(clientId, productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Rating not found"));
 
-        // Re-validate purchase status (optional based on requirements)
-        if (!hasValidPurchase(existingRating.getClient(), existingRating.getProduit())) {
-            throw new RatingNotAllowedException(
-                    "Rating can only be updated for products with valid purchase history"
-            );
-        }
-
-        // Update fields
-        existingRating.setRating(request.getRating());
-        existingRating.setCommentaire(request.getComment());
-
-        return noteRepository.save(existingRating);
-    }
-    public Note getRating(Long clientId, Long productId) {
-        return noteRepository.findByClientIdAndProduitId(clientId, productId)
-                .orElseThrow(() -> new ResourceNotFoundException("Rating not found"));
-    }
     // UserService.java
     public List<UserGrowthDTO> getUserGrowthData() {
         return clientRepository.findMonthlyUserGrowth().stream()

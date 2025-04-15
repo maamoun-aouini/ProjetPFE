@@ -20,6 +20,7 @@ public class AddressRequest {
         return numero;
     }
 
+
     public void setNumero(String numero) {
         this.numero = numero;
     }
@@ -48,4 +49,3 @@ public class AddressRequest {
         this.nomPays = nomPays;
     }
 }
-

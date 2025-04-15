@@ -30,11 +30,9 @@ public class ProduitAdminDTO {
     private Set<CategoryDTO> categories;
     private Double averageRating;
     private Set<String> photos = new HashSet<>();
-
     public boolean isDisponibilite() {
         return disponibilite;
     }
-
     public void setDisponibilite(boolean disponibilite) {
         this.disponibilite = disponibilite;
     }

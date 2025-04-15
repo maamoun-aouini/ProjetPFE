@@ -46,7 +46,18 @@ public class Client extends Utilisateur {
     }
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
+// Add this field and its getters/setters to your Client entity
 
+    @Column(name = "fcm_token")
+    private String fcmToken;
+
+    public String getFcmToken() {
+        return fcmToken;
+    }
+
+    public void setFcmToken(String fcmToken) {
+        this.fcmToken = fcmToken;
+    }
     // Add getter and setter
     public LocalDateTime getLastLogin() {
         return lastLogin;
@@ -59,7 +70,12 @@ public class Client extends Utilisateur {
     public boolean aPasseCommande() {
         return !commandes.isEmpty();  // Vérifie si le client a au moins une commande
     }
+    private boolean isClientPartner(Client client) {
+        if (client == null) return false;
 
+        // Check the client type using the TypeClient enum
+        return TypeClient.Partner.equals(client.getType());
+    }
     public Set<Reclamation> getReclamations() {
         return reclamations;
     }

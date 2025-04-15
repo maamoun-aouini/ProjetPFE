@@ -13,6 +13,13 @@ public class AddressResponse {
     // Default constructor (required by Jackson)
     public AddressResponse() {
     }
+    public AddressResponse(String pays, String ville, String indication, String numero, String rue) {
+        this.pays = pays;
+        this.ville = ville;
+        this.indication = indication;
+        this.numero = numero;
+        this.rue = rue;
+    }
 
     // Constructor from Entity
     public AddressResponse(Adresse adresse) {

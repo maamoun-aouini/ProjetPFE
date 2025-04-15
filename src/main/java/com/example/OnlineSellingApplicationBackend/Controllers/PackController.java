@@ -1,5 +1,4 @@
 package com.example.OnlineSellingApplicationBackend.Controllers;
-
 import com.example.OnlineSellingApplicationBackend.DTO.PackRequest;
 import com.example.OnlineSellingApplicationBackend.Services.PackService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,7 +12,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 @RestController
 @RequestMapping("/api/packs")
 @CrossOrigin(origins = "*")
@@ -26,7 +24,6 @@ public class PackController {
         this.packService = packService;
         this.objectMapper = objectMapper;
     }
-
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getAllPacks() {
         return ResponseEntity.ok(packService.getAllPacks());

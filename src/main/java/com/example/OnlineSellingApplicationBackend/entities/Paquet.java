@@ -99,4 +99,8 @@ public class Paquet {
     public void setQuantite(int quantite) {
         this.quantite = quantite;
     }
+
+    public boolean isDisponibilite() {
+        return this.disponibility;
+    }
 }

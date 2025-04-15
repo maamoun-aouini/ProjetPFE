@@ -10,7 +10,6 @@ import java.util.List;
 @Data
 @Entity
 public class Pays {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY) // ou une autre stratégie selon votre besoin
     private Long id;
@@ -18,7 +17,6 @@ public class Pays {
     private String nom;
     @OneToMany(mappedBy = "pays", cascade = CascadeType.ALL)
     private List<Ville> villes;
-
     public Pays(String nomPay) {
         this.nom=nomPay;
     }

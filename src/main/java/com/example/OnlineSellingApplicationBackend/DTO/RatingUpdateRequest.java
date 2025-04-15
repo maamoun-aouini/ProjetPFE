@@ -1,7 +1,11 @@
 package com.example.OnlineSellingApplicationBackend.DTO;
+
+import lombok.Data;
+
+@Data
 public class RatingUpdateRequest {
     private int rating;
-    private String comment;
+    private String comment; // Note this field name matches frontend
 
     public int getRating() {
         return rating;

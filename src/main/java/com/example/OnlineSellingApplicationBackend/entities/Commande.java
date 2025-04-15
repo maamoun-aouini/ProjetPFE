@@ -20,8 +20,6 @@ public class Commande {
     private Date dateCommande;
     @Column(nullable = false) // Add this annotation
     private Double total;
-
-
     @Enumerated(EnumType.STRING)
     private EtatCommande etat;
 
